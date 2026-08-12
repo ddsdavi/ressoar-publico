@@ -109,8 +109,7 @@ Deno.serve(async (req) => {
   // no renome de 12/08/2026, e função e banco não trocam de versão no mesmo
   // instante. O nome antigo pode sair daqui depois que o banco estiver na
   // versão nova — hoje ele é a rede que evita 401 no meio da virada.
-  const segredoRecebido = req.headers.get("x-ressoar-segredo")
-    ?? req.headers.get("x-ressoa-segredo");
+  const segredoRecebido = req.headers.get("x-ressoar-segredo");
   if (!SEGREDO || segredoRecebido !== SEGREDO) {
     return new Response(JSON.stringify({ erro: "nao autorizado" }), { status: 401 });
   }

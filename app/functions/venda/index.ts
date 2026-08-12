@@ -159,9 +159,6 @@ Deno.serve(async (req) => {
   const tokenRecebido = req.headers.get("x-hotmart-hottok")
     ?? corpoInicial?.hottok
     ?? req.headers.get("x-ressoar-segredo")
-    // nome antigo do cabeçalho, mantido durante a virada de 12/08/2026:
-    // função e banco não trocam de versão no mesmo instante
-    ?? req.headers.get("x-ressoa-segredo")
     ?? null;
 
   if (SEGREDO) {

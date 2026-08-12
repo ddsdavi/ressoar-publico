@@ -53,7 +53,7 @@ export default function ManyChat() {
 
   // quem é essa pessoa, dos dois lados
   const [assinante, setAssinante] = useState<Assinante | null>(null);
-  const [naRessoar, setNaRessoarr] = useState<NaRessoar | null>(null);
+  const [naRessoar, setNaRessoar] = useState<NaRessoar | null>(null);
   const [procurou, setProcurou] = useState(false);
   const [consultaManyChatOk, setConsultaManyChatOk] = useState(false);
 
@@ -191,7 +191,7 @@ export default function ManyChat() {
       supabase.rpc("lead_por_whatsapp", { p_fone: numero }),
     ]);
     setAssinante(mc.existe ? mc.assinante : null);
-    setNaRessoarr((rs as NaRessoar) ?? null);
+    setNaRessoar((rs as NaRessoar) ?? null);
     setConsultaManyChatOk(mc.ok === true);
     if (!mc.existe && (rs as NaRessoar | null)?.nome && !nome.trim()) {
       setNome((rs as NaRessoar).nome ?? "");
@@ -408,7 +408,7 @@ export default function ManyChat() {
                 setProcurou(false);
                 setConsultaManyChatOk(false);
                 setAssinante(null);
-                setNaRessoarr(null);
+                setNaRessoar(null);
                 setMensagemContato(null);
               }}
               onKeyDown={(e) => e.key === "Enter" && buscarUsuario()} />
