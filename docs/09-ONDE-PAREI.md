@@ -162,15 +162,40 @@ mensagens, 62 passos, antes e depois). Depois disso, varri as 93 migrações do
 
 ### O que falta (Fase B, sem prazo — decisão do Davi)
 
-Antes de plugar outra coisa no `ressoa.drapatriciadomingos.com.br`: procurar o
-endereço antigo em fluxos e mensagens do ManyChat, links de bio, anúncios
-ativos, planilhas da equipe e favoritos; opcionalmente criar uma regra 301 de
-`ressoa.…/f/*` para `ressoar.…/f/*` (protege link de formulário antigo para
-sempre); remover o domínio antigo em Pages → Custom domains; e tirar as duas
-entradas antigas da allowlist do Auth. O único endereço público conhecido hoje
-é a página `/f/lives-semanais` — e a landing real das Lives não usa essa página
-(posta direto na função), então a exposição esperada é zero. Conferir mesmo
-assim.
+**A parte que dava para adiantar já foi feita: o banco está limpo.** Varredura
+de 12/08 procurando `ressoa.drapatricia` em passos de automação (é onde moram as
+URLs de webhook e de planilha), mensagens, campanhas, formulários, configurações
+e webhooks cadastrados: **zero ocorrências em todas**. Ou seja, desligar o
+domínio antigo não quebra nada de dentro da plataforma.
+
+**O que sobra é tudo fora daqui**, e só o Davi alcança: fluxos e mensagens do
+ManyChat, links de bio, anúncios ativos, planilhas da equipe e favoritos do
+time. O único endereço público conhecido é a página `/f/lives-semanais` — e a
+landing real das Lives não usa essa página (posta direto na função), então a
+exposição esperada é zero. Conferir mesmo assim.
+
+Depois disso: opcionalmente criar uma regra 301 de `ressoa.…/f/*` para
+`ressoar.…/f/*` (protege link de formulário antigo para sempre); remover o
+domínio antigo em Pages → Custom domains; e tirar as duas entradas antigas da
+allowlist do Auth.
+
+### O espelho público, e a inconsistência que ficou
+
+O espelho foi atualizado em 12/08 pelo ritual de sempre (árvore do HEAD com o
+topo público como pai — nada reescrito, histórico preservado, 64 commits lá).
+Conferido depois de publicar: a árvore publicada é byte a byte a mesma daqui, e
+o nome da dona da conta **não aparece mais em SQL nenhum**.
+
+**Mas vale saber, porque é decisão e não defeito:** o espelho identifica a
+operação de qualquer jeito. O domínio `drapatriciadomingos.com.br` aparece em 6
+arquivos públicos (docs e SQL das automações), e o domínio *é* o nome. Enquanto
+isso, o README se apresenta com "Nome do Remetente" no lugar da marca, como se a
+identidade estivesse protegida. As duas coisas não podem estar certas ao mesmo
+tempo. Além disso, o nome ainda existe no **histórico** público antigo (os
+commits anteriores a 12/08), e tirá-lo de lá exigiria reescrever esse histórico
+— o oposto do que o ritual do espelho faz de propósito. Escolher um dos dois
+caminhos (assumir a identidade ou esconder de verdade, inclusive o domínio) é
+decisão do dono.
 
 O plano completo, com os comandos e as provas de cada etapa, está em
 `docs/superpowers/plans/2026-08-12-ressoar-troca-de-nome-e-dominio.md`.
