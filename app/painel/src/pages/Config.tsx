@@ -363,9 +363,9 @@ export default function Config() {
             seu. Desligada, esses passos não fazem POST nenhum; o resto da automação (e-mail,
             tag, lista) roda normalmente.
             <br /><br />
-            Deixe desligada enquanto o ActiveCampaign ainda estiver rodando as mesmas
-            automações: os dois sistemas chamando o mesmo n8n é a pessoa recebendo tudo em
-            dobro.
+            Deixe desligada se algum fluxo do outro lado já fizer sozinho o que a automação
+            daqui faria: os dois sistemas chamando o mesmo destino é a pessoa recebendo tudo
+            em dobro.
             <br /><br />
             O passo <b>Planilha do Google</b> no modo direto não passa por aqui — ele escreve
             pela conta conectada na aba Planilhas.
@@ -643,7 +643,7 @@ export default function Config() {
         <div className="sub" style={{ marginTop: 4 }}>
           Conecte uma conta Google uma vez. Depois, em qualquer automação, o passo{" "}
           <b>Planilha do Google</b> deixa colar o link de uma planilha, escolher a aba
-          e mapear o que entra em cada coluna — e o Ressoa escreve as linhas sozinho,
+          e mapear o que entra em cada coluna — e o Ressoar escreve as linhas sozinho,
           sem n8n no caminho.
         </div>
 
@@ -658,7 +658,7 @@ export default function Config() {
             <Ajuda>
               Clique no botão, escolha a conta Google na janela que abrir e pronto —
               esta tela vira sozinha quando o Google responder. Se aparecer o aviso de
-              app não verificado, é o app do próprio Ressoa: <b>Avançado → Acessar</b>,
+              app não verificado, é o app desta própria plataforma: <b>Avançado → Acessar</b>,
               uma vez só.
             </Ajuda>
           </div>

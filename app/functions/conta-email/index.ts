@@ -51,10 +51,18 @@ async function enviarEmail(para: string, assunto: string, html: string) {
   }
 }
 
+// Quem assina a instalação vem do secret MARCA_NOME — não do código: este
+// repositório tem espelho público, e nome de pessoa não mora em arquivo
+// versionado. Vazio, o e-mail se apresenta só como Ressoar.
+const MARCA = (Deno.env.get("MARCA_NOME") ?? "").trim();
+const ASSINATURA = MARCA
+  ? ` <span style="opacity:.6;font-weight:400;font-size:13px">&nbsp;·&nbsp; ${MARCA}</span>`
+  : "";
+
 const molde = (titulo: string, corpo: string) => `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f5f6fa;font-family:Segoe UI,Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
 <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:14px;overflow:hidden">
-  <tr><td style="background:#170020;padding:20px 28px;color:#fff;font-size:18px;font-weight:700">Ressoa <span style="opacity:.6;font-weight:400;font-size:13px">&nbsp;·&nbsp; Nome do Remetente</span></td></tr>
+  <tr><td style="background:#170020;padding:20px 28px;color:#fff;font-size:18px;font-weight:700">Ressoar${ASSINATURA}</td></tr>
   <tr><td style="padding:30px 28px;color:#1F2129;font-size:15px;line-height:1.7"><h2 style="margin:0 0 14px;font-size:18px;color:#82308F">${titulo}</h2>${corpo}</td></tr>
   <tr><td style="padding:16px 28px;background:#faf8fb;color:#5F667E;font-size:12px">Se não foi você, ignore este e-mail e troque sua senha — nada muda sem o código acima.</td></tr>
 </table></td></tr></table></body></html>`;
@@ -70,7 +78,7 @@ Deno.serve(async (req) => {
 
   if (acaoPublica === "senha_solicitar") {
     const email = String(corpoBruto.email ?? "").trim().toLowerCase();
-    const resposta = { ok: true, mensagem: "Se este e-mail tiver conta no Ressoa, o código chega em instantes." };
+    const resposta = { ok: true, mensagem: "Se este e-mail tiver conta no Ressoar, o código chega em instantes." };
     if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return responde(resposta);
 
     const { data: perfil } = await admin.from("usuarios_ressoa")
@@ -95,9 +103,9 @@ Deno.serve(async (req) => {
     });
 
     const primeiro = (perfil.nome ?? "").trim().split(/\s+/)[0];
-    await enviarEmail(email, "Seu código para criar uma nova senha — Ressoa",
+    await enviarEmail(email, "Seu código para criar uma nova senha — Ressoar",
       molde("Vamos criar sua nova senha", `
-        <p>${primeiro ? "Olá, " + primeiro + "! " : ""}Recebemos um pedido para redefinir a senha da sua conta no Ressoa.</p>
+        <p>${primeiro ? "Olá, " + primeiro + "! " : ""}Recebemos um pedido para redefinir a senha da sua conta no Ressoar.</p>
         <p>Digite este código na tela de recuperação:</p>
         <p style="font-size:34px;font-weight:700;letter-spacing:8px;color:#82308F;margin:22px 0">${codigo}</p>
         <p style="color:#5F667E;font-size:13.5px">O código vale por 20 minutos. Sua senha atual continua valendo até você criar a nova.</p>`));
@@ -141,9 +149,9 @@ Deno.serve(async (req) => {
     await admin.from("log_seguranca").insert({
       user_id: perfil.user_id, evento: "senha_redefinida", detalhe: {}, ip,
     });
-    await enviarEmail(email, "Sua senha do Ressoa foi alterada",
+    await enviarEmail(email, "Sua senha do Ressoar foi alterada",
       molde("Senha alterada", `
-        <p>A senha da sua conta no Ressoa acabou de ser alterada.</p>
+        <p>A senha da sua conta no Ressoar acabou de ser alterada.</p>
         <p style="color:#5F667E;font-size:13.5px">Se não foi você, fale imediatamente com um admin.</p>`));
     return responde({ ok: true, mensagem: "Senha criada! Agora é só entrar." });
   }
@@ -207,10 +215,10 @@ Deno.serve(async (req) => {
     if (errIns) return responde({ erro: errIns.message }, 500);
 
     // trava 2: o código vai para o E-MAIL ATUAL
-    const envio = await enviarEmail(emailAtual, "Código para trocar seu e-mail — Ressoa",
+    const envio = await enviarEmail(emailAtual, "Código para trocar seu e-mail — Ressoar",
       molde("Confirme a troca do seu e-mail", `
         <p>Recebemos um pedido para trocar o e-mail de acesso desta conta para <b>${emailNovo}</b>.</p>
-        <p>Para autorizar, digite este código no Ressoa:</p>
+        <p>Para autorizar, digite este código no Ressoar:</p>
         <p style="font-size:34px;font-weight:700;letter-spacing:8px;color:#82308F;margin:22px 0">${codigo}</p>
         <p style="color:#5F667E;font-size:13.5px">O código vale por 15 minutos. Enquanto ele não for usado, seu e-mail atual continua valendo.</p>`));
 
@@ -253,13 +261,13 @@ Deno.serve(async (req) => {
     await registrar("troca_email_concluida", { de: pedido.email_atual, para: pedido.email_novo });
 
     // avisa os dois endereços (o antigo é o que detecta invasão)
-    await enviarEmail(pedido.email_atual, "Seu e-mail de acesso foi alterado — Ressoa",
+    await enviarEmail(pedido.email_atual, "Seu e-mail de acesso foi alterado — Ressoar",
       molde("E-mail de acesso alterado", `
         <p>O e-mail de acesso desta conta passou a ser <b>${pedido.email_novo}</b>.</p>
-        <p style="color:#5F667E;font-size:13.5px">Se não foi você, fale imediatamente com um admin do Ressoa.</p>`));
-    await enviarEmail(pedido.email_novo, "Este é o seu novo e-mail de acesso — Ressoa",
+        <p style="color:#5F667E;font-size:13.5px">Se não foi você, fale imediatamente com um admin do Ressoar.</p>`));
+    await enviarEmail(pedido.email_novo, "Este é o seu novo e-mail de acesso — Ressoar",
       molde("Novo e-mail confirmado", `
-        <p>A partir de agora você entra no Ressoa com <b>${pedido.email_novo}</b>.</p>`));
+        <p>A partir de agora você entra no Ressoar com <b>${pedido.email_novo}</b>.</p>`));
 
     return responde({ ok: true, email_novo: pedido.email_novo });
   }
@@ -315,9 +323,9 @@ Deno.serve(async (req) => {
       expira_em: new Date(Date.now() + 15 * 60_000).toISOString(),
     });
 
-    const envio = await enviarEmail(emailAtual, "Código para excluir sua conta — Ressoa",
+    const envio = await enviarEmail(emailAtual, "Código para excluir sua conta — Ressoar",
       molde("Confirme a exclusão da sua conta", `
-        <p>Recebemos um pedido para <b>excluir permanentemente</b> sua conta no Ressoa.</p>
+        <p>Recebemos um pedido para <b>excluir permanentemente</b> sua conta no Ressoar.</p>
         <p>Se foi você, digite este código para concluir:</p>
         <p style="font-size:34px;font-weight:700;letter-spacing:8px;color:#82308F;margin:22px 0">${codigo}</p>
         <p style="color:#D63031;font-size:13.5px"><b>Esta ação é irreversível.</b> Seu cadastro, sua foto e seu histórico serão apagados.</p>
@@ -359,14 +367,14 @@ Deno.serve(async (req) => {
     const { data: admins } = await admin.from("usuarios_ressoa")
       .select("email").eq("papel", "admin").eq("status", "aprovado").neq("user_id", user.id);
     for (const a of admins ?? []) {
-      await enviarEmail(a.email, "Uma conta foi excluída — Ressoa",
+      await enviarEmail(a.email, "Uma conta foi excluída — Ressoar",
         molde("Conta excluída pelo titular", `
-          <p>A pessoa <b>${emailAtual}</b> excluiu a própria conta no Ressoa.</p>
+          <p>A pessoa <b>${emailAtual}</b> excluiu a própria conta no Ressoar.</p>
           <p style="color:#5F667E;font-size:13.5px">Aviso automático de segurança.</p>`));
     }
-    await enviarEmail(emailAtual, "Sua conta no Ressoa foi excluída",
+    await enviarEmail(emailAtual, "Sua conta no Ressoar foi excluída",
       molde("Conta excluída", `
-        <p>Sua conta no Ressoa foi excluída a seu pedido.</p>
+        <p>Sua conta no Ressoar foi excluída a seu pedido.</p>
         <p>Apagamos seu cadastro, sua foto e seu histórico de acesso.</p>
         <p style="color:#5F667E;font-size:13.5px">Os dados da operação (leads, campanhas) pertencem à empresa e permanecem no sistema.</p>`));
 

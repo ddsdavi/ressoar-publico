@@ -1,4 +1,4 @@
-// Edge Function pública: registra uma venda no Ressoa.
+// Edge Function pública: registra uma venda no Ressoar.
 //
 //   POST /venda
 //

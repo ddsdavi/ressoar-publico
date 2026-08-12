@@ -25,6 +25,11 @@
 -- =====================================================================
 begin;
 
+-- Remetente: sai de app_config (from_name_padrao / from_email_padrao /
+-- reply_to_padrao), nao escrito a mao. Duas razoes: a migracao serve a
+-- qualquer instalacao, e nome de pessoa nao mora em arquivo versionado --
+-- este repositorio tem espelho publico.
+
 do $$
 declare
   v_pag1 uuid; v_pag2 uuid; v_car uuid;
@@ -35,13 +40,23 @@ declare
   v_tem_formacao jsonb;
 begin
 
+-- Trava de reexecução. Sem ela, rodar o instalador uma segunda vez criava 9
+-- mensagens e 5 automações duplicadas — e uma delas ('[RESSOA] Pagamento não
+-- caiu') nasce ATIVA, com passo de e-mail. O README promete que rodar de novo
+-- é seguro; até 12/08/2026 essa promessa era falsa justamente aqui.
+if exists (select 1 from public.automacoes
+           where nome = '[RESSOA] Pagamento não caiu') then
+  raise notice 'automações de recuperação já existem; nada a fazer';
+  return;
+end if;
+
 -- ===================================================================
 -- MENSAGENS
 -- ===================================================================
 insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html)
 values (
   '[Pagamento 1/2] Seu pagamento ainda não caiu',
-  'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+  public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
   '{{nome}}, seu pagamento ainda não foi confirmado',
   'Se já pagou, pode ignorar — às vezes leva algumas horas.',
   '<p>Oi, {{nome}}!</p>'
@@ -56,7 +71,7 @@ returning mensagem_id into v_pag1;
 insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html)
 values (
   '[Pagamento 2/2] Seu código deve expirar',
-  'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+  public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
   'Seu código de pagamento está prestes a expirar',
   'Último aviso sobre este pedido.',
   '<p>Oi, {{nome}}!</p>'
@@ -70,7 +85,7 @@ returning mensagem_id into v_pag2;
 insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html)
 values (
   '[Carrinho] Você parou no meio',
-  'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+  public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
   '{{nome}}, você parou no meio do caminho',
   'Ficou faltando um passo para concluir.',
   '<p>Oi, {{nome}}!</p>'
@@ -84,7 +99,7 @@ returning mensagem_id into v_car;
 insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html)
 values (
   '[Aluno 1/2] Você já está dentro — e tem um degrau a mais',
-  'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+  public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
   '{{nome}}, como está indo a sua Formação?',
   'Uma pergunta e um convite para quem já está dentro.',
   '<p>Oi, {{nome}}!</p>'
@@ -98,7 +113,7 @@ returning mensagem_id into v_alu1;
 insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html)
 values (
   '[Aluno 2/2] Quando a dúvida trava a prática',
-  'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+  public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
   'O que trava a maioria dos terapeutas no começo',
   'E o que costuma destravar.',
   '<p>Oi, {{nome}}!</p>'
@@ -112,7 +127,7 @@ returning mensagem_id into v_alu2;
 insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html)
 values (
   '[Lives 1/2] Da live para a prática',
-  'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+  public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
   '{{nome}}, o primeiro passo prático depois das lives',
   'Assistir ajuda. Aplicar muda a casa.',
   '<p>Oi, {{nome}}!</p>'
@@ -126,7 +141,7 @@ returning mensagem_id into v_liv1;
 insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html)
 values (
   '[Lives 2/2] A casa que adoece e a casa que sustenta',
-  'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+  public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
   'A sua casa está te sustentando ou te drenando?',
   'Dá para sentir a diferença em poucos dias.',
   '<p>Oi, {{nome}}!</p>'
@@ -141,7 +156,7 @@ returning mensagem_id into v_liv2;
 insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html)
 values (
   '[Janela quente 4/4] Um mês depois',
-  'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+  public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
   'Um mês depois: continua fazendo sentido?',
   'Sem pressa e sem insistência — só uma pergunta.',
   '<p>Oi, {{nome}}!</p>'
@@ -155,7 +170,7 @@ returning mensagem_id into v_seg;
 insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html)
 values (
   '[Reativação] Faz um tempo',
-  'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+  public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
   '{{nome}}, faz um tempo que a gente não se fala',
   'Uma passada rápida para saber de você.',
   '<p>Oi, {{nome}}!</p>'

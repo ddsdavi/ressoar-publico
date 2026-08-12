@@ -4,7 +4,7 @@ O sistema nasce em **modo simulado**: enfileira, personaliza, marca como enviado
 métricas — mas **nenhum e-mail sai**. É proposital: dá para testar a operação inteira sem
 risco de queimar o domínio.
 
-O Ressoa fala com dois provedores: **Resend** e **Amazon SES**. Trocar de um para o outro é
+O Ressoar fala com dois provedores: **Resend** e **Amazon SES**. Trocar de um para o outro é
 mudar uma opção em *Configurações* — nada mais no sistema muda.
 
 ---
@@ -43,7 +43,7 @@ v=DMARC1; p=none; rua=mailto:dmarc@seudominio.com.br; pct=100; fo=1
 **API Keys → Create API Key** → permissão *Sending access* → copie (só aparece uma vez).
 
 ## 4. Ligar no painel
-No Ressoa, **Configurações**:
+No Ressoar, **Configurações**:
 
 | Campo | Valor |
 |---|---|
@@ -135,7 +135,7 @@ Isso grava as chaves como **secrets da Edge Function `enviar-ses`** — elas nã
 banco nem pelo navegador.
 
 ## 6. Virar a chave
-No Ressoa, **Configurações**:
+No Ressoar, **Configurações**:
 
 | Campo | Valor |
 |---|---|

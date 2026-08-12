@@ -15,7 +15,8 @@
 //
 // As credenciais desse cadastro (client id e secret) são configuração de
 // INSTALAÇÃO, não de uso: moram nos secrets desta função, ao lado das chaves
-// da AWS. Quando a tela do Google diz "Prosseguir para Ressoa", é esse
+// da AWS. Quando a tela do Google diz "Prosseguir para Ressoa" — o cadastro
+// no Google ainda tem o nome antigo, e trocá-lo é opcional —, é esse
 // cadastro falando. Ninguém no painel precisa saber que ele existe — do
 // mesmo jeito que ninguém digita o client id do ManyChat para usar ManyChat.
 //
@@ -177,7 +178,7 @@ Deno.serve(async (req) => {
       if (!origem.startsWith("https://")) {
         return new Response(
           resultado === "ok"
-            ? "Conta Google conectada. Pode fechar esta aba e voltar ao Ressoa."
+            ? "Conta Google conectada. Pode fechar esta aba e voltar ao Ressoar."
             : "Nao deu para conectar (" + resultado + "). Volte ao painel e tente de novo.",
           { status: resultado === "ok" ? 200 : 400,
             headers: { "Content-Type": "text/plain; charset=utf-8" } });
@@ -269,17 +270,51 @@ Deno.serve(async (req) => {
       const linha = colunas.map((c) => valorDe(mapa[c]));
       const token = await tokenDeAcesso();
       const faixa = encodeURIComponent(`'${aba}'!A1`);
-      const r = await fetch(
+      const anexar = () => fetch(
         `${SHEETS}/${planilha}/values/${faixa}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
         { method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify({ values: [linha] }),
           signal: AbortSignal.timeout(15000) });
-      const d = await r.json();
+
+      let r = await anexar();
+      let d = await r.json();
+
+      // Aba que não existe não é erro: é segunda-feira. A planilha dos
+      // compradores do Desafio tem uma aba por turma, e apontá-la era um
+      // ritual manual de toda segunda — que falhou junto com o da tag
+      // (11/08/2026). Aqui a aba nasce sozinha, com o cabeçalho, e a
+      // linha entra em seguida.
+      let abaCriada = false;
+      if (!r.ok && JSON.stringify(d).includes("Unable to parse range")) {
+        const rCria = await fetch(`${SHEETS}/${planilha}:batchUpdate`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ requests: [{ addSheet: { properties: { title: aba } } }] }),
+          signal: AbortSignal.timeout(15000) });
+        if (rCria.ok) {
+          abaCriada = true;
+          await fetch(
+            `${SHEETS}/${planilha}/values/${faixa}?valueInputOption=USER_ENTERED`,
+            { method: "PUT",
+              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ values: [colunas] }),
+              signal: AbortSignal.timeout(15000) });
+          r = await anexar();
+          d = await r.json();
+        } else {
+          const dCria = await rCria.json().catch(() => ({}));
+          await anotar(lead, planilha, aba, false,
+            "aba não existe e não deu para criar: " + JSON.stringify(dCria).slice(0, 300));
+          return erro("não deu para criar a aba: " + JSON.stringify(dCria).slice(0, 200), 502);
+        }
+      }
+
       await anotar(lead, planilha, aba, r.ok,
-        r.ok ? `linha adicionada (${(d.updates?.updatedRange ?? "?")})` : JSON.stringify(d));
+        (abaCriada ? "aba criada com cabeçalho; " : "") +
+        (r.ok ? `linha adicionada (${(d.updates?.updatedRange ?? "?")})` : JSON.stringify(d)));
       if (!r.ok) return erro("Google recusou: " + JSON.stringify(d).slice(0, 300), 502);
-      return ok({ ok: true, faixa: d.updates?.updatedRange ?? null });
+      return ok({ ok: true, faixa: d.updates?.updatedRange ?? null, aba_criada: abaCriada });
     }
 
     // ---- daqui para baixo, só admin logado ----

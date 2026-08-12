@@ -14,7 +14,7 @@
 -- de formato do telefone resolve. Quem sabe quem é a pessoa é o ManyChat.
 --
 -- Então o sentido se inverte. O ManyChat manda o subscriber_id para a
--- Ressoa uma vez (uma ação "External Request" dentro do fluxo dele), a
+-- Ressoar uma vez (uma ação "External Request" dentro do fluxo dele), a
 -- gente guarda esse id no lead, e a partir daí marcar é direto — sem
 -- busca, sem ambiguidade, e funciona para quem nunca deu e-mail.
 -- =====================================================================

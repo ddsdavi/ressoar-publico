@@ -23,7 +23,7 @@ type Passo = {
 // andar depois.
 const PASSOS: Passo[] = [
   {
-    id: "boas-vindas", emoji: "💜", titulo: "Boas-vindas ao Ressoa!",
+    id: "boas-vindas", emoji: "💜", titulo: "Boas-vindas ao Ressoar!",
     texto: "Esta é a plataforma que conversa com a sua base — no lugar do ActiveCampaign, e com os dados na sua mão. Vou te mostrar tela por tela: dá uns 3 minutinhos.",
     dica: "Pode sair quando quiser no ✕ e voltar depois pelo ❓ lá em cima. As setas ← → do teclado andam, e as bolinhas do rodapé pulam direto para um assunto.",
   },
@@ -128,7 +128,7 @@ const PASSOS: Passo[] = [
   {
     id: "vendas", rota: "/vendas", sel: [".ac-sidebar a[href='/vendas']", ".ac-rail a[href='/vendas']"],
     emoji: "🛒", titulo: "Produtos e vendas",
-    texto: "A Hotmart avisa o Ressoa a cada compra — é uma configuração só, para a conta inteira. O que muda de produto para produto é o depois: em que lista a pessoa entra, que tag ganha, se é marcada no ManyChat.",
+    texto: "A Hotmart avisa o Ressoar a cada compra — é uma configuração só, para a conta inteira. O que muda de produto para produto é o depois: em que lista a pessoa entra, que tag ganha, se é marcada no ManyChat.",
     dica: "Produto sem regra não se perde: a compra fica registrada em “Eventos recebidos”, só não acontece nada com quem comprou. E reembolso não apaga a venda — ela fica com o status trocado e a pessoa sai sozinha dos segmentos de comprador.",
   },
 

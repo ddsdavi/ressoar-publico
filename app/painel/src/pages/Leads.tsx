@@ -665,7 +665,7 @@ export default function Leads() {
       ? { ...atual, ids: atual.ids.filter((id) => id !== leadExcluido.lead_id) }
       : null);
     if (pagina > 0 && leads.length === 1) setPagina(pagina - 1);
-    setMensagemPagina(`Lead ${leadExcluido.nome || leadExcluido.email || leadExcluido.whatsapp || "sem nome"} excluído da Ressoa.`);
+    setMensagemPagina(`Lead ${leadExcluido.nome || leadExcluido.email || leadExcluido.whatsapp || "sem nome"} excluído da Ressoar.`);
     fecharDetalhe();
     setRecarga((valor) => valor + 1);
   }
@@ -1314,7 +1314,7 @@ export default function Leads() {
               )}
               {ehAdmin && (
                 <div className="caixa zona-perigo-lead">
-                  <h2>Excluir lead da Ressoa
+                  <h2>Excluir lead da Ressoar
                     <Ajuda>
                       Serve para pedido de exclusão de dados (LGPD). Não confunda com{" "}
                       <b>bloquear o envio</b>: se a intenção é só parar de mandar e-mail, use
@@ -1342,7 +1342,7 @@ export default function Leads() {
                   ) : (
                     <div className="confirmacao-exclusao-lead">
                       <div className="aviso">
-                        Esta ação apaga o cadastro e os vínculos internos da Ressoa: listas, tags,
+                        Esta ação apaga o cadastro e os vínculos internos da Ressoar: listas, tags,
                         notas, compras, automações e histórico. O bloqueio de e-mail é preservado
                         para impedir novos envios. A pessoa no ManyChat não será apagada.
                       </div>

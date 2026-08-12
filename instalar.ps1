@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# RESSOA — instalador de 1 comando (Windows)
+# RESSOAR — instalador de 1 comando (Windows)
 #   .\instalar.ps1              instala tudo
 #   .\instalar.ps1 -SoBanco     só cria/atualiza o banco
 #   .\instalar.ps1 -SoPainel    só publica o painel
@@ -20,9 +20,15 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) { Erro "Python nao 
 Ok "Node $(node -v) e Python OK"
 
 if (-not (Test-Path .env)) { Erro "Falta o arquivo .env. Rode: copy .env.example .env  — e preencha as chaves." }
-Get-Content .env | ForEach-Object {
+# -Encoding utf8 nao e opcional: sem ele o Windows PowerShell le o .env na
+# pagina de codigo ANSI e "Patricia" com acento chega como mojibake ate o
+# painel e o cabecalho dos e-mails de conta. Medido em 12/08/2026.
+Get-Content .env -Encoding utf8 | ForEach-Object {
   if ($_ -match '^\s*([A-Z_]+)\s*=\s*(.*)$') {
-    [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2].Trim(), "Process")
+    # O .sh faz `source .env`, entao valor com espaco PRECISA de aspas la; aqui
+    # elas sao ruido e teriam de ser tiradas na mao em cada uso.
+    $valor = $Matches[2].Trim() -replace '^"(.*)"$', '$1' -replace "^'(.*)'$", '$1'
+    [Environment]::SetEnvironmentVariable($Matches[1], $valor, "Process")
   }
 }
 $faltando = @()
@@ -61,9 +67,13 @@ if (-not $SoBanco) {
   Ok "Dependencias instaladas"
 
   Passo "4/6 Gerando o arquivo de configuracao do painel"
+  # A assinatura vem junto: este arquivo e REESCRITO a cada instalacao, e sem
+  # estas duas linhas o -SoPainel publicava um painel sem assinatura nenhuma.
   @(
     "VITE_SUPABASE_URL=$env:SUPABASE_URL",
-    "VITE_SUPABASE_ANON_KEY=$env:SUPABASE_ANON_KEY"
+    "VITE_SUPABASE_ANON_KEY=$env:SUPABASE_ANON_KEY",
+    "VITE_MARCA_NOME=$env:VITE_MARCA_NOME",
+    "VITE_MARCA_RODAPE=$env:VITE_MARCA_RODAPE"
   ) | Out-File -FilePath "app/painel/.env.local" -Encoding utf8
   Ok "app/painel/.env.local criado"
 
@@ -79,6 +89,12 @@ if (-not $SoBanco) {
   } else {
     Aviso "(canal transacional nao configurado — codigos de seguranca nao serao enviados)"
   }
+  # Pela API, nao pelo CLI: no Windows o CLI corrompe acento na passagem de
+  # argumento. E grava SEMPRE (inclusive vazio), senao apagar o nome do .env
+  # deixava o e-mail assinado com o nome velho.
+  $env:MARCA_NOME = $env:VITE_MARCA_NOME
+  python scripts/definir_secret.py MARCA_NOME
+  Ok "Assinatura dos e-mails de conta configurada"
   if ($env:AWS_ACCESS_KEY_ID -and $env:AWS_SECRET_ACCESS_KEY) {
     $regiao = if ($env:AWS_REGIAO) { $env:AWS_REGIAO } else { "us-east-1" }
     Push-Location app
@@ -114,7 +130,7 @@ if (-not $SoBanco) {
 Write-Host @"
 
 ============================================================
-  RESSOA INSTALADO
+  RESSOAR INSTALADO
 ============================================================
 
 O QUE FAZER AGORA

@@ -132,7 +132,7 @@ receber nada e ainda suja a base.
 
 ### O telefone precisa estar no formato certo
 
-A busca é exata: um dígito de diferença e a pessoa "não existe". A Ressoa normaliza o
+A busca é exata: um dígito de diferença e a pessoa "não existe". A Ressoar normaliza o
 número completo antes de comparar; nunca casa só pelos últimos dígitos:
 
 | Entra | Sai | Caso |
@@ -146,14 +146,14 @@ número completo antes de comparar; nunca casa só pelos últimos dígitos:
 
 ### A tag da turma pode ter nome diferente lá
 
-Na Ressoa a turma é `CASA_H_2026_08_03`; no ManyChat da Patrícia é `CASA_H_26_08_03`,
+Na Ressoar a turma é `CASA_H_2026_08_03`; no ManyChat da Patrícia é `CASA_H_26_08_03`,
 com o ano de dois dígitos. Mandar a nossa criaria uma tag paralela que **nenhuma
 automação de lá escuta** — a pessoa seria marcada e nada aconteceria.
 
 Por isso o padrão da turma no ManyChat é um campo à parte, e aceita `{AA}`:
 
 ```
-Ressoa .....: CASA_H_{AAAA}_{MM}_{DD}
+Ressoar .....: CASA_H_{AAAA}_{MM}_{DD}
 ManyChat ...: CASA_H_{AA}_{MM}_{DD} - COMPROU INGRESSO CASA_H
 ```
 
@@ -170,7 +170,7 @@ de uma vez só:
 | Criar a pessoa | quando não existe — precisa do WhatsApp |
 | Aplicar e remover tag | conferir antes de ligar um fluxo de verdade |
 | Ver e criar tags | são as tags da conta do ManyChat, não as daqui |
-| Trazer alguém da Ressoa | usa o WhatsApp de um contato daqui, sem digitar |
+| Trazer alguém da Ressoar | usa o WhatsApp de um contato daqui, sem digitar |
 
 O número aparece já formatado antes da busca — é o que permite descobrir na hora quando
 o telefone gravado está diferente do que o ManyChat tem.

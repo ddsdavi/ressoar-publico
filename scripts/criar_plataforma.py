@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Cria a camada operacional da Ressoa no Supabase (SEU-PROJETO)
+"""Cria a camada operacional da Ressoar no Supabase (SEU-PROJETO)
 e semeia a partir do arquivo ac_*:
 
   listas / lead_listas (com status 0-3)     <- ac_lists / ac_contact_lists

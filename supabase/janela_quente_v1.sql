@@ -17,14 +17,23 @@
 -- =====================================================================
 begin;
 
+-- Remetente: sai de app_config (from_name_padrao / from_email_padrao /
+-- reply_to_padrao), nao escrito a mao. Duas razoes: a migracao serve a
+-- qualquer instalacao, e nome de pessoa nao mora em arquivo versionado --
+-- este repositorio tem espelho publico.
+
 do $$
 declare
   v_e1 uuid; v_e2 uuid; v_e3 uuid;
   v_auto uuid;
   v_goal jsonb;
 begin
+  -- `like`, e nao `=`: a v2 (janela_quente_v2_ligada) RENOMEIA esta automação
+  -- para '[RESSOA] Formação — janela quente' ao ligá-la. Com igualdade exata, a
+  -- trava parava de reconhecer o que ela mesma criou e o instalador passava a
+  -- criar uma segunda automação a cada execução. Medido em 12/08/2026.
   if exists (select 1 from public.automacoes
-             where nome = '[RESSOA] Formação — janela quente (revisar e ligar)') then
+             where nome like '[RESSOA] Formação — janela quente%') then
     raise notice 'automação da janela quente já existe; nada a fazer';
     return;
   end if;
@@ -32,7 +41,7 @@ begin
   insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html, text_body)
   values (
     '[RASCUNHO] Janela quente 1/3 — o próximo passo',
-    'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+    public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
     '{{nome}}, o próximo passo depois da sua compra',
     'O que você começou ontem tem um caminho inteiro pela frente.',
     '<p>Oi, {{nome}}!</p>'
@@ -48,7 +57,7 @@ begin
   insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html, text_body)
   values (
     '[RASCUNHO] Janela quente 2/3 — prova social',
-    'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+    public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
     'De aluna a terapeuta: o caminho que começa aí',
     'Quem entrou como você está colhendo o quê?',
     '<p>Oi, {{nome}}!</p>'
@@ -63,7 +72,7 @@ begin
   insert into public.mensagens (nome, from_name, from_email, reply_to, subject, preheader, html, text_body)
   values (
     '[RASCUNHO] Janela quente 3/3 — última da sequência',
-    'Patrícia Domingos', 'contato@mkt.drapatriciadomingos.com.br', 'contato@drapatriciadomingos.com.br',
+    public.cfg('from_name_padrao'), public.cfg('from_email_padrao'), public.cfg('reply_to_padrao'),
     'Antes que a rotina engula essa decisão',
     'Este é o último e-mail desta sequência — prometo.',
     '<p>Oi, {{nome}}!</p>'

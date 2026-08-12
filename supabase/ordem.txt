@@ -98,3 +98,7 @@ supabase/recuperacao_e_jogadas_v1.sql
 supabase/resumo_diario_v1.sql
 supabase/aquecimento_v2_sem_teto.sql
 supabase/sem_teto_v1_1.sql
+supabase/telefone_da_compra_v1.sql
+supabase/telefone_da_compra_v2_uma_assinatura.sql
+supabase/banimento_v1.sql
+supabase/desafio_planilha_v1.sql

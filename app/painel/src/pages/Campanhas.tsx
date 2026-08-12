@@ -599,7 +599,7 @@ export default function Campanhas() {
               <label style={{ display: "flex", gap: 8, alignItems: "flex-start", opacity: 0.55 }}>
                 <input type="checkbox" checked={monitoraResposta} disabled
                   onChange={(e) => setMonitoraResposta(e.target.checked)} />
-                <span>Resposta<br /><span className="sub">Ainda não: exige ler a caixa de entrada, que a Ressoa não faz.</span></span>
+                <span>Resposta<br /><span className="sub">Ainda não: exige ler a caixa de entrada, que a Ressoar não faz.</span></span>
               </label>
               <label style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                 <input type="checkbox" checked={arquivoPublico}

@@ -1,4 +1,4 @@
-# Ressoa
+# Ressoar
 
 Plataforma própria de e-mail marketing, automação e vendas. Substitui o ActiveCampaign
 por um sistema que roda em infraestrutura de custo quase zero e que você controla inteiro.
@@ -6,7 +6,7 @@ por um sistema que roda em infraestrutura de custo quase zero e que você contro
 Foi construída para operar a base da Nome do Remetente — 12 mil leads de sua área
 — mas nada aqui é específico dela. Serve para qualquer operação de infoproduto.
 
-🔗 **No ar:** https://ressoa.seudominio.com.br
+🔗 **No ar:** https://ressoar.seudominio.com.br
 
 ---
 
@@ -28,7 +28,7 @@ Foi construída para operar a base da Nome do Remetente — 12 mil leads de sua 
 | **WhatsApp** | marca a pessoa no ManyChat quando ela compra, e é a tag que dispara a mensagem lá |
 | **Planilhas** | conta Google conectada uma vez; automações escrevem linhas com as colunas mapeadas |
 
-O WhatsApp não sai daqui: quem manda é o ManyChat. A Ressoa decide **quem** e **quando**.
+O WhatsApp não sai daqui: quem manda é o ManyChat. A Ressoar decide **quem** e **quando**.
 
 ---
 

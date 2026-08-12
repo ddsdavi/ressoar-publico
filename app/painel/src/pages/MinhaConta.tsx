@@ -189,7 +189,7 @@ export default function MinhaConta() {
   return (
     <div>
       <h1>{saudacao()}, {primeiroNome(perfil)}!</h1>
-      <div className="sub">Seus dados e preferências no Ressoa.</div>
+      <div className="sub">Seus dados e preferências no Ressoar.</div>
 
       {msg && <div className={msg.tipo === "ok" ? "aviso ok" : "aviso"}>{msg.texto}</div>}
 

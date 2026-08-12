@@ -122,5 +122,5 @@ curl -X POST "$SUPABASE_URL/functions/v1/formulario" \
 ```
 
 **Webhooks de saída:** cadastre a URL do seu n8n em **API & Webhooks** e escolha os eventos
-(`lead_criado`, `lista_inscrita`, `tag_adicionada`, `lead_descadastrado`…). O Ressoa faz POST
+(`lead_criado`, `lista_inscrita`, `tag_adicionada`, `lead_descadastrado`…). O Ressoar faz POST
 com o contato completo.

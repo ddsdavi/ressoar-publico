@@ -15,7 +15,7 @@
 --
 -- A correção é normalizar os dois lados para a MESMA forma antes de
 -- comparar — e a forma é a mesma que a ponte com o ManyChat usa, senão
--- volta a dar diferença entre o que a Ressoa acha e o que existe lá.
+-- volta a dar diferença entre o que a Ressoar acha e o que existe lá.
 -- =====================================================================
 begin;
 
@@ -102,7 +102,7 @@ begin
   select lead_id into v_lead from public.tabela_1_leads
   where public.normalizar_telefone(whatsapp) = v_fone limit 1;
   if found then
-    v_como := 'já existia na Ressoa';
+    v_como := 'já existia na Ressoar';
   else
     insert into public.tabela_1_leads (nome, whatsapp)
     values (nullif(btrim(coalesce(p_nome, '')), ''),
@@ -110,7 +110,7 @@ begin
                                   where o.whatsapp = right(v_fone, 11))
                  then right(v_fone, 11) end)
     returning lead_id into v_lead;
-    v_como := 'criado agora na Ressoa';
+    v_como := 'criado agora na Ressoar';
   end if;
 
   v_res := public.aplicar_mapa_produto(v_lead, coalesce(m.padrao_nome, m.apelido),

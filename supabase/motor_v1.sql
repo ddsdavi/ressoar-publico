@@ -1,5 +1,5 @@
 -- =====================================================================
--- MOTOR v1 da Ressoa — roda inteiro dentro do Postgres.
+-- MOTOR v1 da Ressoar — roda inteiro dentro do Postgres.
 -- Eventos (outbox) -> automações -> passos (email/webhook/tag/lista/espera)
 -- Fila de envios com provedor abstraído: 'simulado' agora, 'resend' depois.
 -- =====================================================================

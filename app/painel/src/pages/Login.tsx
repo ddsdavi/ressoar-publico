@@ -61,7 +61,7 @@ export default function Login() {
       } else if (modo === "esqueci") {
         const { dados } = await chamar({ acao: "senha_solicitar", email: email.trim().toLowerCase() });
         setModo("codigo");
-        setMsg({ tipo: "ok", texto: dados.mensagem ?? "Se este e-mail tiver conta no Ressoa, o código chega em instantes." });
+        setMsg({ tipo: "ok", texto: dados.mensagem ?? "Se este e-mail tiver conta no Ressoar, o código chega em instantes." });
       } else if (modo === "codigo") {
         if (senha.length < 8) throw new Error("A senha precisa ter pelo menos 8 caracteres.");
         if (senha !== senha2) throw new Error("As duas senhas não são iguais.");
@@ -104,7 +104,7 @@ export default function Login() {
           <div className="topo">
             <MarcaRessoa tamanho={40} />
             <div>
-              <b>Ressoa</b>
+              <b>Ressoar</b>
               {MARCA_NOME && <span>{MARCA_NOME}</span>}
             </div>
           </div>
@@ -124,7 +124,7 @@ export default function Login() {
         <form className="cartao-login" onSubmit={enviar}>
           <div className="marca-mobile">
             <MarcaRessoa tamanho={34} />
-            <div><b>Ressoa</b>{MARCA_NOME && <span>{MARCA_NOME}</span>}</div>
+            <div><b>Ressoar</b>{MARCA_NOME && <span>{MARCA_NOME}</span>}</div>
           </div>
 
           <h2>{titulos[modo]}</h2>

@@ -1,9 +1,9 @@
 -- =====================================================================
--- LIVES SEMANAIS — o passo de planilha entra na automação da Ressoa.
+-- LIVES SEMANAIS — o passo de planilha entra na automação da Ressoar.
 --
 -- A planilha "[PATRÍCIA DOMINGOS] Lives semanais - inscritos" era
 -- alimentada pelo flow do n8n (workflow X8vmCXUkeqXQQ1Nk). Agora quem
--- escreve é a própria Ressoa: passo google_sheets NATIVO na automação
+-- escreve é a própria Ressoar: passo google_sheets NATIVO na automação
 -- "[RESSOA] Lives Semanais — tag no ManyChat" (gatilho tag 85), logo
 -- depois do passo que marca o ManyChat. O flow do n8n fica de reserva,
 -- parado — decisão do Davi em 05/08.
@@ -13,7 +13,7 @@ begin;
 -- 1. o passo, na ordem 2. As colunas seguem a ordem EXATA do cabeçalho
 -- real da planilha (o executor escreve posicionalmente a partir do A).
 -- "ID do Contato" recebia o assinante do ManyChat no n8n; agora recebe
--- o lead_id da Ressoa — o dono do contato passou a ser a base.
+-- o lead_id da Ressoar — o dono do contato passou a ser a base.
 insert into public.automacao_passos (automacao_fk, ordem, tipo, config)
 select '80750fda-1235-4443-bed0-730a633925a3', 2, 'google_sheets',
        jsonb_build_object(

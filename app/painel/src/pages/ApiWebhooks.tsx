@@ -37,10 +37,10 @@ const SUBABAS = [
       </>
     ) },
   { id: "saida", rotulo: "Webhooks de saída",
-    sub: "Para onde a Ressoa avisa quando algo acontece — n8n, Boost.space, planilha.",
+    sub: "Para onde a Ressoar avisa quando algo acontece — n8n, Boost.space, planilha.",
     ajuda: (
       <>
-        O contrário da aba anterior: aqui é a <b>Ressoa que chama</b> outro
+        O contrário da aba anterior: aqui é a <b>Ressoar que chama</b> outro
         sistema. Toda vez que alguém entra numa lista, ganha uma tag ou compra,
         ela faz um POST no endereço que você cadastrar, levando o contato
         inteiro.
@@ -107,7 +107,7 @@ export default function ApiWebhooks({ embutido }: { embutido?: boolean } = {}) {
 
   async function alternarChaveGeral() {
     const novo = cfg.executar_webhooks === "true" ? "false" : "true";
-    if (novo === "true" && !confirm("LIGAR os webhooks das automações? A partir de agora, cada gatilho fará POST REAL para n8n/Boost. Com o ActiveCampaign ainda ativo, isso pode gerar disparo duplicado.")) return;
+    if (novo === "true" && !confirm("LIGAR os webhooks das automações? A partir de agora, cada gatilho fará POST REAL para n8n/Boost. Antes, confira se algum fluxo do outro lado já faz sozinho a mesma coisa — os dois juntos é a pessoa recebendo tudo em dobro.")) return;
     await supabase.from("app_config").upsert({ chave: "executar_webhooks", valor: novo, updated_at: new Date().toISOString() });
     carregar();
   }
@@ -214,7 +214,7 @@ export default function ApiWebhooks({ embutido }: { embutido?: boolean } = {}) {
       <div className="caixa">
         <h2>Endereços para colar<Ajuda>Quase todos são públicos de propósito: quem chama é a Hotmart, um formulário ou o ManyChat, e nenhum deles tem como guardar uma senha sua. A exceção é a captação por API, que escolhe lista e tag no próprio corpo — essa exige a chave de captação.</Ajuda></h2>
         <div style={{ fontSize: "calc(13.5px * var(--escala-texto))", lineHeight: 1.7, marginBottom: 6 }}>
-          As portas de entrada do mundo pra sua Ressoa.
+          As portas de entrada do mundo pra sua Ressoar.
         </div>
         <label>Captação com formulário (público — a lista e a tag vêm do cadastro do formulário, nunca do corpo)
           <Ajuda>
@@ -294,7 +294,7 @@ export default function ApiWebhooks({ embutido }: { embutido?: boolean } = {}) {
 
         <label>Postback do Resend (resend.com → Webhooks)
           <Ajuda>
-            Como a Ressoa fica sabendo o que aconteceu com o e-mail <b>depois</b>{" "}
+            Como a Ressoar fica sabendo o que aconteceu com o e-mail <b>depois</b>{" "}
             que ele saiu: se foi entregue, se voltou (endereço que não existe
             mais) ou se a pessoa marcou como spam.
             <br /><br />
@@ -331,7 +331,7 @@ ${BASE_FUNC}/descadastro?e=ENVIO_ID          (página de descadastro)`}</Codigo>
 
       {sub === "saida" && (
       <div className="caixa">
-        <h2>Para onde avisar<Ajuda>Quando um evento acontece aqui, a Ressoa faz um POST nestes endereços. É como o n8n fica sabendo.</Ajuda></h2>
+        <h2>Para onde avisar<Ajuda>Quando um evento acontece aqui, a Ressoar faz um POST nestes endereços. É como o n8n fica sabendo.</Ajuda></h2>
         <div className="sub">
           O motor faz POST com o contato completo em cada evento assinado — mesmo papel dos webhooks que o AC postava pro seu n8n.
         </div>
@@ -429,7 +429,7 @@ ${BASE_FUNC}/descadastro?e=ENVIO_ID          (página de descadastro)`}</Codigo>
           </tbody>
         </table>
         <div style={{ fontSize: "calc(12.5px * var(--escala-texto))", color: "var(--texto2)", marginTop: 8 }}>
-          Estes POSTs só saem com a chave-geral LIGADA — pra não duplicar com o AC enquanto ele existir.
+          Estes POSTs só saem com a chave-geral LIGADA. Desligada, nenhum sai — mesmo com o passo montado na automação.
         </div>
       </div>
       )}

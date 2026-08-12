@@ -57,7 +57,7 @@ begin
               where regexp_replace(coalesce(o.whatsapp,''), '\D','','g') = right(v_fone, 11))
             then right(v_fone, 11) end)
     returning lead_id into v_lead;
-    v_como := 'criado agora na Ressoa';
+    v_como := 'criado agora na Ressoar';
   end if;
 
   -- e agora a regra, igual à da compra

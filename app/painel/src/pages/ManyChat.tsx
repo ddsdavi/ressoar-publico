@@ -11,7 +11,7 @@ import {
 
 // Banco de testes do ManyChat.
 //
-// A tela anterior tinha três caixas soltas — procurar, trazer da Ressoa,
+// A tela anterior tinha três caixas soltas — procurar, trazer da Ressoar,
 // rodar a regra — e nenhuma delas era o que se precisa fazer. O que se
 // precisa é percorrer o caminho inteiro de uma vez, com um número:
 //
@@ -25,6 +25,10 @@ import {
 type NaRessoa = {
   lead_id: string; nome: string | null; whatsapp: string | null;
   manychat_id: string | null; tags: string[]; listas: string[];
+};
+type Banido = {
+  whatsapp: string; nome: string | null; motivo: string | null;
+  manychat_id: string | null; ultima_verificacao: string | null; ultima_acao: string | null;
 };
 type Produto = {
   id: number; apelido: string; tag_manychat: string | null; tag_manychat_turma: boolean;
@@ -53,6 +57,14 @@ export default function ManyChat() {
   const [procurou, setProcurou] = useState(false);
   const [consultaManyChatOk, setConsultaManyChatOk] = useState(false);
 
+  // banidos
+  const [banidos, setBanidos] = useState<Banido[]>([]);
+  const [banNome, setBanNome] = useState("");
+  const [banFone, setBanFone] = useState("");
+  const [banAcao, setBanAcao] = useState(false);
+  const [mensagemBanidos, setMensagemBanidos] = useState<Passo | null>(null);
+  const [banidoParaRemover, setBanidoParaRemover] = useState<Banido | null>(null);
+
   // tags da conta
   const [novaTag, setNovaTag] = useState("");
   const [filtro, setFiltro] = useState("");
@@ -71,12 +83,103 @@ export default function ManyChat() {
     }
   }
 
+  async function carregarBanidos() {
+    const { data } = await supabase.from("manychat_banidos")
+      .select("*").order("nome").order("whatsapp");
+    setBanidos((data as Banido[]) ?? []);
+  }
+
   useEffect(() => {
     carregarTags();
+    carregarBanidos();
     supabase.from("hotmart_produtos")
       .select("id,apelido,tag_manychat,tag_manychat_turma").eq("ativo", true).order("apelido")
       .then(({ data }) => setProdutos((data as Produto[]) ?? []));
   }, []);
+
+  // A forma canônica do número, a mesma da base: DDI+DDD+número. Aqui só
+  // o suficiente para não gravar um número que a trava nunca vai casar —
+  // a régua completa (fixo, DDD 55, zero do DDD) mora na Edge Function.
+  function canonizar(bruto: string): string | null {
+    let n = bruto.replace(/\D+/g, "");
+    if ((n.length === 12 || n.length === 13) && n.startsWith("550")) n = "55" + n.slice(3);
+    if (n.length === 11 && n[2] === "9") n = "55" + n;
+    if (n.length === 13 && n.startsWith("55")) return n[4] === "9" ? n : null;
+    return n.length >= 12 ? n : null;
+  }
+
+  async function adicionarBanido() {
+    const fone = canonizar(banFone);
+    if (!fone) {
+      setMensagemBanidos({ texto: "Número inválido. Use DDI + DDD + número: 5511999990000.", estado: "erro" });
+      return;
+    }
+    setBanAcao(true);
+    setMensagemBanidos(null);
+    try {
+      const { error } = await supabase.from("manychat_banidos").insert({
+        whatsapp: fone, nome: banNome.trim() || null, motivo: "adicionado pelo painel",
+      });
+      if (error) {
+        setMensagemBanidos({
+          texto: error.code === "23505"
+            ? "Esse número já está na lista."
+            : "Não deu para adicionar — somente admin pode alterar a lista.",
+          estado: "erro",
+        });
+        return;
+      }
+      setBanNome(""); setBanFone("");
+      await carregarBanidos();
+      setMensagemBanidos({
+        texto: `Número ${fone} banido. A vigilância roda a cada 10 minutos — ou clique em “Verificar agora”.`,
+        estado: "ok",
+      });
+    } finally {
+      setBanAcao(false);
+    }
+  }
+
+  async function confirmarRemocaoBanido() {
+    const b = banidoParaRemover;
+    if (!b) return;
+    setBanAcao(true);
+    setMensagemBanidos(null);
+    try {
+      const { error } = await supabase.from("manychat_banidos")
+        .delete().eq("whatsapp", b.whatsapp);
+      if (error) {
+        setMensagemBanidos({ texto: "Não deu para remover — somente admin pode alterar a lista.", estado: "erro" });
+        return;
+      }
+      setBanidoParaRemover(null);
+      await carregarBanidos();
+      setMensagemBanidos({ texto: `Número ${b.whatsapp} saiu da lista de banidos.`, estado: "ok" });
+    } finally {
+      setBanAcao(false);
+    }
+  }
+
+  async function verificarBanidosAgora() {
+    setBanAcao(true);
+    setMensagemBanidos(null);
+    try {
+      const d = await chamar({ acao: "banidos_verificar" });
+      if (!d.ok) {
+        setMensagemBanidos({ texto: d.erro ?? "Não deu para verificar agora.", estado: "erro" });
+        return;
+      }
+      await carregarBanidos();
+      setMensagemBanidos({
+        texto: `Verificação concluída: ${d.verificados} número(s) conferido(s). O resultado está na coluna “última ação”.`,
+        estado: "ok",
+      });
+    } catch {
+      setMensagemBanidos({ texto: "Não deu para verificar agora.", estado: "erro" });
+    } finally {
+      setBanAcao(false);
+    }
+  }
 
   // Procurar dos DOIS lados de uma vez. Antes eram duas caixas separadas, e
   // a pergunta "quem é essa pessoa" tinha duas respostas em lugares
@@ -160,8 +263,8 @@ export default function ManyChat() {
     // 1. quem é aqui
     const mc = await procurar();
     const { data: rs } = await supabase.rpc("lead_por_whatsapp", { p_fone: fone });
-    anota(rs ? `Na Ressoa: ${(rs as NaRessoa).nome ?? "(sem nome)"}`
-             : "Na Ressoa: não existe ainda", rs ? "ok" : "info");
+    anota(rs ? `Na Ressoar: ${(rs as NaRessoa).nome ?? "(sem nome)"}`
+             : "Na Ressoar: não existe ainda", rs ? "ok" : "info");
 
     if (!mc || mc.erro) {
       anota(mc?.erro ?? "não deu para consultar o ManyChat", "erro");
@@ -331,7 +434,7 @@ export default function ManyChat() {
           <div style={{ display: "grid", gap: 16,
                         gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
             <div>
-              <b>Na Ressoa</b>
+              <b>Na Ressoar</b>
               {naRessoa ? (
                 <div style={{ marginTop: 6 }}>
                   <div>{naRessoa.nome || <i>sem nome</i>}</div>
@@ -434,7 +537,7 @@ export default function ManyChat() {
               tag é o que dispara o fluxo de mensagem de lá. Não é um rascunho: a pessoa pode
               receber WhatsApp por causa deste clique.
               <br /><br />
-              As tags daqui e as do Ressoa são listas separadas: mexer numa não mexe na outra.
+              As tags daqui e as do Ressoar são listas separadas: mexer numa não mexe na outra.
             </Ajuda>
           </h3>
           {!procurou && (
@@ -489,7 +592,7 @@ export default function ManyChat() {
           <h3 style={{ margin: 0, flex: 1 }}>
             Tags da conta <span className="contagem">({tags.length})</span>
             <Ajuda>
-              São as tags do ManyChat, não as da Ressoa. É por elas que os fluxos de lá
+              São as tags do ManyChat, não as da Ressoar. É por elas que os fluxos de lá
               disparam — por isso a tag precisa existir lá antes de a automação usá-la.
             </Ajuda>
           </h3>
@@ -565,6 +668,92 @@ export default function ManyChat() {
             </div>
           </>
         )}
+      </div>
+
+      {/* ---------------- banidos ---------------- */}
+      <div className="caixa">
+        <h2>Banidos do ManyChat <span className="contagem">({banidos.length})</span>
+          <Ajuda>
+            Números desta lista <b>nunca recebem tag</b> no ManyChat — nem por compra, nem
+            por automação, nem pela tela. E o sistema vigia: a cada 10 minutos procura cada
+            número lá; se o usuário existir, derruba os opt-ins que a API deixa e aplica a
+            tag <b>ESC WHATSAPP</b>.
+            <br /><br />
+            A <b>exclusão de verdade</b> a API do ManyChat não oferece — quando a coluna
+            “última ação” disser que o usuário foi encontrado, exclua-o à mão na conta de lá.
+            <br /><br />
+            Somente admin adiciona ou remove números daqui.
+          </Ajuda>
+        </h2>
+
+        <div className="linha" style={{ marginTop: 12 }}>
+          <input value={banNome} placeholder="nome (opcional)"
+            onChange={(e) => setBanNome(e.target.value)} />
+          <input value={banFone} placeholder="5511999990000"
+            onChange={(e) => setBanFone(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && adicionarBanido()} />
+          <button className="primario" style={{ flex: "0 0 auto" }}
+            onClick={adicionarBanido} disabled={banAcao || !banFone.trim()}>
+            {banAcao ? "aguarde…" : "Banir número"}
+          </button>
+          <button style={{ flex: "0 0 auto" }} onClick={verificarBanidosAgora}
+            disabled={banAcao || !banidos.length}>
+            Verificar agora
+          </button>
+        </div>
+
+        {mensagemBanidos && (
+          <div className="aviso" style={{ marginTop: 12, color: cor(mensagemBanidos.estado) }}>
+            {mensagemBanidos.texto}
+          </div>
+        )}
+
+        {banidoParaRemover && (
+          <div className="aviso" style={{ marginTop: 12, borderColor: "var(--perigo)" }}>
+            <b>Tirar {banidoParaRemover.nome || banidoParaRemover.whatsapp} da lista?</b>
+            <div className="sub" style={{ marginTop: 5 }}>
+              O número {banidoParaRemover.whatsapp} volta a poder receber tags — inclusive
+              pelas automações, já na próxima compra.
+            </div>
+            <div className="linha" style={{ marginTop: 10 }}>
+              <button style={{ flex: "0 0 auto" }} disabled={banAcao}
+                onClick={() => setBanidoParaRemover(null)}>Cancelar</button>
+              <button className="perigo" style={{ flex: "0 0 auto" }}
+                disabled={banAcao} onClick={confirmarRemocaoBanido}>Confirmar</button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 14 }}>
+          {banidos.map((b) => (
+            <div key={b.whatsapp}
+              style={{
+                padding: "10px 0", borderBottom: "1px solid var(--borda)",
+                display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap",
+              }}>
+              <div style={{ flex: "1 1 220px" }}>
+                <b>{b.nome || <i>sem nome</i>}</b>
+                <div className="sub" style={{ marginTop: 2 }}>
+                  {b.whatsapp}
+                  {b.manychat_id ? ` · assinante ${b.manychat_id}` : ""}
+                </div>
+              </div>
+              <div className="sub" style={{ flex: "2 1 260px" }}>
+                {b.ultima_verificacao
+                  ? <>vigiado {new Date(b.ultima_verificacao).toLocaleString("pt-BR")}
+                      <br />{b.ultima_acao}</>
+                  : "ainda não vigiado — aguarde o próximo ciclo ou clique em Verificar agora"}
+              </div>
+              <button className="perigo" style={{ flex: "0 0 auto", padding: "5px 10px" }}
+                disabled={banAcao} onClick={() => setBanidoParaRemover(b)}>
+                Remover
+              </button>
+            </div>
+          ))}
+          {!banidos.length && (
+            <div className="sub">Nenhum número banido.</div>
+          )}
+        </div>
       </div>
     </div>
   );

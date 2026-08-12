@@ -154,7 +154,7 @@ export default function ManyChatLeadDrawer({ lead, ehAdmin, onClose }: Props) {
         <div className="aviso">
           <b>Este lead não tem WhatsApp.</b>
           <div className="sub" style={{ marginTop: 5 }}>
-            Adicione o número na Ressoa antes de procurar ou criar o usuário no ManyChat.
+            Adicione o número na Ressoar antes de procurar ou criar o usuário no ManyChat.
           </div>
         </div>
       )}
@@ -163,7 +163,7 @@ export default function ManyChatLeadDrawer({ lead, ehAdmin, onClose }: Props) {
         <div className="caixa mc-estado mc-ausente">
           <span className="etiqueta et-amarela">Não encontrado</span>
           <h2>Este lead ainda não existe no ManyChat</h2>
-          <div className="sub">Crie o usuário com o mesmo WhatsApp cadastrado na Ressoa.</div>
+          <div className="sub">Crie o usuário com o mesmo WhatsApp cadastrado na Ressoar.</div>
           {ehAdmin ? (
             <>
               <label>Nome no ManyChat</label>

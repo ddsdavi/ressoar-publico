@@ -1,8 +1,8 @@
--- O formulário passa a ser servido pelo domínio do Ressoa, não pelo
+-- O formulário passa a ser servido pelo domínio do Ressoar, não pelo
 -- domínio de funções do Supabase — que força text/plain em HTML (proteção
 -- contra hospedarem página falsa lá) e mostraria o código em vez da página.
 --
--- Ganho de tabela: o endereço fica ressoa.seudominio.com.br/f/slug.
+-- Ganho de tabela: o endereço fica ressoar.seudominio.com.br/f/slug.
 -- Domínio próprio em formulário de captação passa mais confiança e não
 -- depende de infraestrutura de terceiro aparecer na barra de endereço.
 --

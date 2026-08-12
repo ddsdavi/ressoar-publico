@@ -73,10 +73,10 @@ primeiro não exige site nenhum; os outros dois preservam o visual da sua págin
 
 ### Caminho A — usar a página pronta
 
-Cada formulário já nasce com uma página no ar, no domínio da Ressoa:
+Cada formulário já nasce com uma página no ar, no domínio da Ressoar:
 
 ```
-https://ressoa.SEUDOMINIO.com.br/f/lives-semanais
+https://ressoar.SEUDOMINIO.com.br/f/lives-semanais
 ```
 
 **Instalar no site → Só divulgar o link** entrega esse endereço. Serve para link

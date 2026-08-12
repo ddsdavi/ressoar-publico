@@ -2,7 +2,7 @@
 -- RELATÓRIOS v2 — "De onde vem o dinheiro" que dá para entender.
 --
 -- O diagnóstico (medido em 06/08/2026): só 206 dos 6.232 compradores têm
--- origem (3%) — o rastreio nasceu com o Ressoa, o histórico veio sem.
+-- origem (3%) — o rastreio nasceu com o Ressoar, o histórico veio sem.
 -- A tela mostrava "(sem origem) R$ 232 mil" na primeira linha, jargão de
 -- máquina (paid_metaads) e conversão de "100%" calculada sobre 1 pessoa.
 -- Tecnicamente certo, humanamente inútil.

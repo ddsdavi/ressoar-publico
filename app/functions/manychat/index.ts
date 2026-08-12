@@ -28,8 +28,9 @@ type Corpo = {
   lead_id?: string; manychat_id?: string; email?: string; nome?: string;
   whatsapp?: string; tag?: string; tag_id?: number; criar?: boolean;
   subscriber_id?: string | number; registrar?: boolean;
-  // operações avulsas usadas pela tela
-  acao?: "tags" | "criar_tag" | "excluir_tag" | "procurar" | "criar" | "desmarcar";
+  // operações avulsas usadas pela tela (banidos_verificar também vem do cron)
+  acao?: "tags" | "criar_tag" | "excluir_tag" | "procurar" | "criar" | "desmarcar"
+       | "banidos_verificar";
 };
 
 // ---------------------------------------------------------------------
@@ -89,9 +90,14 @@ Deno.serve(async (req) => {
                 Authorization: `Bearer ${chave}` };
 
   const seg = await (await fetch(
-    `${base}/rest/v1/segredos?chave=eq.manychat_api_key&select=valor`,
+    `${base}/rest/v1/segredos?chave=in.(manychat_api_key,service_key)&select=chave,valor`,
     { headers: cab })).json();
-  const token = seg?.[0]?.valor;
+  const token = (seg ?? []).find((s: { chave: string }) => s.chave === "manychat_api_key")?.valor;
+  // A chave de serviço tem DUAS gerações neste projeto: o env da função
+  // (sb_secret_…) e o JWT guardado em segredos.service_key, que é o que o
+  // pg_cron manda. Aceitar só uma delas já rendeu 403 silencioso na função
+  // de planilhas — as duas valem.
+  const chaveServicoDb = (seg ?? []).find((s: { chave: string }) => s.chave === "service_key")?.valor ?? "";
 
   const cfg = await (await fetch(
     `${base}/rest/v1/app_config?chave=like.manychat*&select=chave,valor`,
@@ -99,6 +105,19 @@ Deno.serve(async (req) => {
   const conf = Object.fromEntries(
     (cfg ?? []).map((r: { chave: string; valor: string }) => [r.chave, r.valor ?? ""]));
   const campoWhats = conf.manychat_campo_whatsapp ?? "";
+
+  // ---- banimento ----
+  // Números que NUNCA recebem tag. A lista mora em manychat_banidos; a
+  // tag de último recurso (ESC WHATSAPP) em app_config. Ver banimento_v1.sql.
+  const tagEsc = Number(conf.manychat_tag_esc ?? "0") || 0;
+  const banidos = await (await fetch(
+    `${base}/rest/v1/manychat_banidos?select=whatsapp,manychat_id,nome`,
+    { headers: cab })).json().catch(() => []) as
+    { whatsapp: string; manychat_id: string | null; nome: string | null }[];
+  const banidoPorFone = (f: string) =>
+    !!f && banidos.some((b) => b.whatsapp === f);
+  const banidoPorId = (id: string | number | null | undefined) =>
+    id != null && String(id) !== "" && banidos.some((b) => b.manychat_id === String(id));
 
   // As operações destrutivas e a criação manual de contatos só existem na
   // área de admin do painel. A chave anon do frontend é pública, então não
@@ -162,6 +181,64 @@ Deno.serve(async (req) => {
     return um?.id ? Number(um.id) : null;
   };
 
+  // A escada do banimento, na ordem ditada pelo dono: excluir → cancelar a
+  // inscrição → tag ESC WHATSAPP. A API pública não tem exclusão (medido:
+  // 404), então ela fica apontada para fazer à mão; o descadastro é melhor
+  // esforço (a API só escreve opt-in de SMS/e-mail); a tag é a garantia.
+  const aplicarEscada = async (id: number): Promise<string> => {
+    const acoes: string[] = ["exclusão indisponível na API (fazer à mão)"];
+    const info = await mc(`/subscriber/getInfo?subscriber_id=${id}`);
+    const dd = (info.dados as { data?: Record<string, unknown> })?.data ?? {};
+    const status = String(dd.status ?? "");
+    const tagsAtuais = ((dd.tags ?? []) as { id: number }[]).map((t) => Number(t.id));
+
+    if (status === "unsubscribed") {
+      acoes.push("já descadastrado");
+    } else {
+      const r = await mc("/subscriber/updateSubscriber", "POST", {
+        subscriber_id: id, has_opt_in_sms: false, has_opt_in_email: false });
+      acoes.push(r.ok ? "opt-ins de SMS/e-mail derrubados" : "descadastro recusado pela API");
+    }
+
+    if (!tagEsc) {
+      acoes.push("SEM tag ESC configurada (manychat_tag_esc)");
+    } else if (tagsAtuais.includes(tagEsc)) {
+      acoes.push("tag ESC já presente");
+    } else {
+      const r = await mc("/subscriber/addTag", "POST", { subscriber_id: id, tag_id: tagEsc });
+      acoes.push(r.ok ? "tag ESC aplicada"
+                      : "tag ESC falhou: " + JSON.stringify(r.dados).slice(0, 120));
+    }
+    return acoes.join("; ");
+  };
+
+  // Procura um banido lá pelos mesmos caminhos da marcação: id guardado,
+  // campo personalizado do WhatsApp, campo de sistema.
+  const acharBanido = async (b: { whatsapp: string; manychat_id: string | null }) => {
+    let id: number | null = b.manychat_id ? Number(b.manychat_id) : null;
+    if (!id && campoWhats) {
+      id = primeiro((await mc(
+        `/subscriber/findByCustomField?field_id=${encodeURIComponent(campoWhats)}` +
+        `&field_value=${encodeURIComponent(b.whatsapp)}`)).dados);
+    }
+    if (!id) {
+      id = primeiro((await mc(
+        `/subscriber/findBySystemField?phone=${encodeURIComponent(b.whatsapp)}`)).dados);
+    }
+    return id;
+  };
+
+  const gravarVigilancia = async (whatsapp: string, id: number | null, acao: string) => {
+    await fetch(`${base}/rest/v1/manychat_banidos?whatsapp=eq.${encodeURIComponent(whatsapp)}`, {
+      method: "PATCH", headers: { ...cab, Prefer: "return=minimal" },
+      body: JSON.stringify({
+        manychat_id: id ? String(id) : undefined,
+        ultima_verificacao: new Date().toISOString(),
+        ultima_acao: acao,
+      }),
+    });
+  };
+
   const u = new URL(req.url);
 
   // ---- conferir a chave (botão "testar" do painel) ----
@@ -188,6 +265,31 @@ Deno.serve(async (req) => {
   // que vai mandar WhatsApp para gente de verdade.
   if (c.acao) {
     const fone = formatarTelefone(c.whatsapp ?? "");
+
+    // ---- a vigilância dos banidos (cron de 10 em 10 min, ou o botão) ----
+    if (c.acao === "banidos_verificar") {
+      const autor = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+      const ehMotor = autor === chave || (chaveServicoDb !== "" && autor === chaveServicoDb);
+      if (!ehMotor && !(await usuarioEhAdmin())) {
+        return new Response(JSON.stringify({ ok: false, erro: "somente o motor ou um admin" }),
+                            { status: 403, headers: CORS });
+      }
+      const resultados: { whatsapp: string; nome: string | null; acao: string }[] = [];
+      for (const b of banidos) {
+        const id = await acharBanido(b);
+        const acao = id
+          ? `assinante ${id}: ` + await aplicarEscada(id)
+          : "não encontrado no ManyChat";
+        await gravarVigilancia(b.whatsapp, id, acao);
+        if (id) {
+          await anotar(undefined, "banido vigiado", "ESC WHATSAPP", true,
+                       `${b.whatsapp} → ${acao}`.slice(0, 400));
+        }
+        resultados.push({ whatsapp: b.whatsapp, nome: b.nome, acao });
+      }
+      return new Response(JSON.stringify({ ok: true, verificados: resultados.length, resultados }),
+                          { headers: CORS });
+    }
 
     if (c.acao === "tags") {
       const r = await mc("/page/getTags");
@@ -281,6 +383,12 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ ok: false, erro: "somente admin pode criar usuário" }),
                             { status: 403, headers: CORS });
       }
+      if (fone && banidoPorFone(fone)) {
+        await anotar(c.lead_id, "bloqueado", "", true,
+                     "número banido do ManyChat — criação recusada");
+        return new Response(JSON.stringify({ ok: false, erro: "esse número está banido do ManyChat" }),
+                            { status: 403, headers: CORS });
+      }
       if (!fone) {
         return new Response(JSON.stringify({ ok: false, erro: "sem WhatsApp válido não dá para criar" }),
                             { status: 400, headers: CORS });
@@ -317,7 +425,7 @@ Deno.serve(async (req) => {
         whatsapp_phone: fone,
         has_opt_in_sms: true,
         has_opt_in_email: true,
-        consent_phrase: "cadastro vindo da Ressoa",
+        consent_phrase: "cadastro vindo da Ressoar",
       });
       const id = primeiro(r.dados);
       let campoLigado = false;
@@ -354,6 +462,23 @@ Deno.serve(async (req) => {
 
   // ---- o ManyChat nos apresentando alguém (ação External Request) ----
   if (c.subscriber_id || c.registrar) {
+    // Banido apareceu lá sozinho (mandou mensagem, foi criado por fora):
+    // não registra na Ressoar e trata na hora, sem esperar o cron.
+    const foneReg = formatarTelefone(c.whatsapp ?? "");
+    const banidoReg = banidos.find((b) =>
+      (foneReg && b.whatsapp === foneReg) ||
+      (c.subscriber_id != null && b.manychat_id === String(c.subscriber_id)));
+    if (banidoReg || banidoPorFone(foneReg)) {
+      const alvo = banidoReg ?? banidos.find((b) => b.whatsapp === foneReg)!;
+      const id = c.subscriber_id ? Number(c.subscriber_id) : await acharBanido(alvo);
+      const acao = id ? `assinante ${id}: ` + await aplicarEscada(id)
+                      : "não encontrado no ManyChat";
+      await gravarVigilancia(alvo.whatsapp, id ?? null, acao);
+      await anotar(undefined, "banido vigiado", "ESC WHATSAPP", true,
+                   `${alvo.whatsapp} apareceu pelo External Request → ${acao}`.slice(0, 400));
+      return new Response(JSON.stringify({ ok: false, motivo: "número banido" }),
+                          { headers: CORS });
+    }
     const r = await fetch(`${base}/rest/v1/rpc/manychat_registrar`, {
       method: "POST", headers: cab,
       body: JSON.stringify({
@@ -373,6 +498,16 @@ Deno.serve(async (req) => {
   }
 
   const fone = formatarTelefone(c.whatsapp ?? "");
+
+  // Banido não recebe tag nenhuma — nem é criado. O motor já barra antes
+  // (manychat_aplicar), mas a tela e chamadas diretas chegam aqui sem
+  // passar por lá; a trava se repete de propósito.
+  if (banidoPorFone(fone) || banidoPorId(c.manychat_id)) {
+    await anotar(c.lead_id, "bloqueado", c.tag, true,
+                 "número banido do ManyChat — nenhuma tag é aplicada");
+    return new Response(JSON.stringify({ ok: false, motivo: "número banido" }),
+                        { headers: CORS });
+  }
 
   // ---- 1. achar ----
   let id: number | null = c.manychat_id ? Number(c.manychat_id) : null;
@@ -420,7 +555,7 @@ Deno.serve(async (req) => {
       whatsapp_phone: fone,
       has_opt_in_sms: true,
       has_opt_in_email: true,
-      consent_phrase: "cadastro vindo da Ressoa",
+      consent_phrase: "cadastro vindo da Ressoar",
     });
     id = primeiro(r.dados);
     criado = !!id;

@@ -4,13 +4,223 @@ Documento de passagem. Serve para quem pegar este projeto do zero — outra
 sessão, outra conta, outra pessoa — saber em que pé está sem ter que
 reconstituir a conversa.
 
-Última atualização: 05/08/2026.
+Última atualização: 12/08/2026.
+
+---
+
+## Ressoa virou Ressoar, com o carro andando (12/08/2026)
+
+O produto mudou de nome e o painel mudou de endereço, sem tirar nada do ar e
+sem perder um dado sequer.
+
+| | |
+|---|---|
+| Nome | **Ressoa → Ressoar** (tela, e-mails do sistema, documentação) |
+| Painel | `ressoar.drapatriciadomingos.com.br` |
+| Endereço antigo | **continua no ar**, servindo o mesmo painel — o Davi vai plugar outra coisa nele depois (a "Fase B" do plano) |
+
+**Por que não houve janela de risco.** A pergunta que governou o desenho foi
+*por onde entra dado novo, e algum desses caminhos passa pelo domínio?* A
+resposta, conferida uma a uma: **nenhum**. Venda da Hotmart, formulário (tanto
+o embutido em site de fora quanto a landing das Lives), pixel de abertura e
+clique, descadastro, postbacks do Resend, ManyChat e o callback do Google
+entram todos por `*.supabase.co`; o motor roda dentro do Postgres. O domínio
+serve **só gente**: a equipe no painel e as páginas `/f/`. Por isso o endereço
+novo entrou como **segundo domínio do mesmo projeto do Pages** — os dois
+apontam para o mesmo painel e o mesmo banco ao mesmo tempo, e em nenhum
+instante existiu um endereço fora do ar. Não houve migração de dados: o banco
+e as funções nem sabem que o domínio mudou.
+
+**A prova, medida no fim:** 47 eventos da Hotmart nas 4 horas da troca, **zero
+sem processar**; 76 eventos do motor, **zero pendentes**; 13 leads novos; uma
+compra aprovada às 14:46 processada normalmente. A base saiu de 13.453 para
+13.459 leads durante o trabalho.
+
+**O que foi publicado:** o painel (Cloudflare) e três Edge Functions —
+`conta-email` (o cabeçalho dos e-mails de conta), `google-sheets` (o texto que
+fecha o consentimento do Google) e `manychat` (a frase de consentimento que vai
+**gravada no registro do assinante** lá, e por isso não era só comentário). As
+outras oito funções mudaram só em comentário e seguem publicadas na versão
+anterior: o código delas em produção é idêntico ao do repositório em tudo que
+executa.
+
+### O que NÃO mudou, de propósito
+
+Renomear identificador é risco sem ganho — ninguém de fora vê. Ficaram como
+estavam, e quem for procurar tem de procurar por eles:
+
+- os **7 relógios do pg_cron** (`ressoa-processar-eventos`, `ressoa-fila-envios`…);
+- a tabela **`usuarios_ressoa`**, a classe CSS **`.ressoa-form`** (já embutida em
+  site de terceiro) e os tipos de arrasto `application/x-ressoa-*`;
+- os nomes das **8 automações `[RESSOA] …`** — e este tem um motivo forte: as
+  migrações que as criam têm guarda **por nome**, então renomear a linha viva
+  sem editar a guarda faria o instalador criar uma **duplicata ativa**;
+- o projeto do Cloudflare Pages **`ressoa`** e o `ressoa-2zl.pages.dev` (alvo do
+  deploy), os repositórios no GitHub, as variáveis `RESSOA_EMAIL_*` e o caminho
+  do webhook no n8n.
+
+No **código** (`app/`, `scripts/`, `supabase/`) sobraram **duas** ocorrências da
+palavra antiga isolada, e as duas são corretas: o comentário em
+`app/functions/google-sheets/index.ts` (que cita o nome do app **no Google
+Cloud**, que não foi renomeado) e a docstring de `scripts/renomear_ressoar.py`
+(que descreve a própria regra do renome). Quem varrer o repositório inteiro vai
+achar mais do que isso, porque **esta seção do diário** fala do nome antigo o
+tempo todo — a conta de "duas" vale para código, não para documentação. E o
+script do renome **não pode ser rodado de novo**: ele tem trava pedindo
+`--confirmo` justamente porque uma segunda passada reescreveria estes parágrafos
+e a exceção do google-sheets, apagando a memória de por que aquelas palavras
+ficaram.
+
+### Seis defeitos consertados no caminho
+
+1. **A allowlist do Auth apontava para um endereço morto** (`ressoa.pages.dev`;
+   o real é `ressoa-2zl.pages.dev`).
+2. **`instalar.ps1 -SoPainel` apagava a assinatura do painel.** O passo que
+   regenera `app/painel/.env.local` escrevia só as duas chaves do Supabase e
+   levava junto `VITE_MARCA_NOME`/`VITE_MARCA_RODAPE`. Agora a assinatura mora
+   no `.env` (fonte única) e o instalador a leva para os dois destinos: o painel
+   e o secret `MARCA_NOME` da função `conta-email`.
+3. **Os e-mails de conta diziam "Nome do Remetente"** — resíduo da sanitização
+   do espelho público, indo para gente de verdade. Agora vêm do secret.
+4. **`scripts/aplicar_emails_auth.py` não compilava desde `8ed69ad`** ("Tira do
+   repositorio tudo que e pessoal"): a sanitização escapou aspas dentro de uma
+   f-string. O arquivo estava morto e ninguém sabia. Varri os 13 scripts: era o
+   único.
+5. **O `instalar.ps1` lia o `.env` na página de código ANSI**, e "Patrícia"
+   chegava como `PatrÃ­cia` no painel e no cabeçalho do e-mail. Aconteceu de
+   verdade nesta leva: o secret foi gravado corrompido e teve de ser regravado
+   pela API. Agora o instalador usa `Get-Content -Encoding utf8`. **Regra que
+   ficou:** secret com acento vai pela **API**, nunca pelo CLI — no Windows o
+   valor atravessa dois conversores de página de código e chega estragado. A
+   conferência é por hash: o Supabase devolve o secret como SHA-256, então dá
+   para provar o que está lá sem imprimir o valor.
+6. **O script do renome se autocorrompeu** (rodou sobre si mesmo e deixou
+   `DOM_VELHO` igual a `DOM_NOVO`, um replace que não troca nada e não avisa).
+   Agora ele pula o próprio arquivo.
+
+### Três coisas que não são defeito, mas precisam estar escritas
+
+- **Os e-mails do Auth do Supabase não existem nesta operação.**
+  `mailer_autoconfirm` está **ligado** (a conta nasce confirmada) e o painel não
+  chama `resetPasswordForEmail`, `signInWithOtp` nem `inviteUser` — recuperar
+  senha, trocar e-mail e excluir conta passam pela Edge Function `conta-email`,
+  que manda pelo canal próprio (n8n). Os templates do Auth estão no **padrão em
+  inglês do Supabase** e ninguém os recebe. Some-se a isso que o Supabase
+  **recusa** editar template em projeto do plano grátis com o provedor padrão
+  (as cinco chamadas voltam com erro). O script fica guardado para o dia em que
+  houver SMTP próprio, com o porquê escrito no cabeçalho dele.
+- **O resumo diário não vai para ninguém**: `resumo_diario_para` está vazio
+  desde 06/08. A função foi reaplicada com o nome e o link novos, mas só volta
+  a chegar em alguém quando alguém preencher esse campo em Configurações.
+- **A máquina onde este trabalho roda fica atrás de um proxy corporativo que
+  inspeciona TLS** — o certificado que chega não é o do Cloudflare, é o do
+  próprio proxy. Consequências ao conferir qualquer coisa dali: `curl` e
+  ferramentas de busca falham por certificado não confiável, e **domínio
+  recém-criado pode dar "Erro de privacidade" no Chrome mesmo estando perfeito
+  para o resto do mundo** — foi o que aconteceu com o `ressoar.` no dia em que
+  subiu. Para provar que um site está no ar dali, use o navegador; se ele
+  reclamar num domínio novo, busque por fora (um leitor server-side resolve)
+  antes de concluir que quebrou.
+
+### A promessa de "rodar de novo é seguro" era falsa — e agora é verdade
+
+O README diz que reaplicar o instalador não estraga nada. Não era o caso, e o
+estrago seria dos grandes:
+
+- **`recuperacao_e_jogadas_v1.sql` não tinha trava nenhuma.** Uma segunda
+  execução criava **9 mensagens e 5 automações duplicadas** — e uma delas,
+  `[RESSOA] Pagamento não caiu`, nasce **ativa, com passo de e-mail**.
+- **`janela_quente_v1.sql` tinha a trava errada.** Ela procurava
+  `'[RESSOA] Formação — janela quente (revisar e ligar)'`, mas a `v2` **renomeia**
+  a automação ao ligá-la. A trava deixou de reconhecer o que ela mesma criou;
+  agora compara com `like '…janela quente%'`.
+- **`scripts/run_sql_file.py` matava a instalação no acento.** O console do
+  Windows abre em cp1252 e o script morria ao **imprimir** o resultado quando
+  ele trazia `→` (nome de automação "Aluno → Black"). A migração tinha
+  funcionado; a exceção dava saída 1, e os dois instaladores tratam saída 1
+  como "falhou em tal arquivo" e abortam no meio do banco. Agora a saída é
+  forçada para UTF-8.
+
+Provado, não suposto: as duas migrações foram **reexecutadas em produção** com
+as travas novas, e as contagens ficaram idênticas (28 automações, 115
+mensagens, 62 passos, antes e depois). Depois disso, varri as 93 migrações do
+`ordem.txt`: as quatro que inserem automação ou mensagem têm trava.
+
+### Duas arrumações que vieram junto
+
+- **O remetente das migrações saiu do código.** `recuperacao_e_jogadas_v1.sql` e
+  `janela_quente_v1.sql` cravavam nome e endereços do remetente em 12 lugares.
+  Agora leem `app_config` (`from_name_padrao`, `from_email_padrao`,
+  `reply_to_padrao`) — a migração serve a qualquer instalação, e nome de pessoa
+  sai de arquivo versionado. Conferido: as 66 mensagens da base já usam
+  exatamente o valor que está na configuração, então nada muda de
+  comportamento.
+- **Três textos da tela pararam de falar do ActiveCampaign no presente.** Eles
+  justificavam a trava dos webhooks com "enquanto o AC ainda estiver rodando" —
+  o AC morreu em 05/08. O risco real continua existindo (um fluxo do outro lado
+  fazendo a mesma coisa), e é isso que os textos dizem agora.
+
+### O que falta (Fase B, sem prazo — decisão do Davi)
+
+Antes de plugar outra coisa no `ressoa.drapatriciadomingos.com.br`: procurar o
+endereço antigo em fluxos e mensagens do ManyChat, links de bio, anúncios
+ativos, planilhas da equipe e favoritos; opcionalmente criar uma regra 301 de
+`ressoa.…/f/*` para `ressoar.…/f/*` (protege link de formulário antigo para
+sempre); remover o domínio antigo em Pages → Custom domains; e tirar as duas
+entradas antigas da allowlist do Auth. O único endereço público conhecido hoje
+é a página `/f/lives-semanais` — e a landing real das Lives não usa essa página
+(posta direto na função), então a exposição esperada é zero. Conferir mesmo
+assim.
+
+O plano completo, com os comandos e as provas de cada etapa, está em
+`docs/superpowers/plans/2026-08-12-ressoar-troca-de-nome-e-dominio.md`.
+
+---
+
+## A tag dupla de turma e o banimento (11/08/2026)
+
+**O incidente:** compradores do Desafio entravam no ManyChat com DUAS tags de
+turma — a certa (`CASA_H_26_08_17`, calculada pela Ressoar) e a da semana
+anterior (`CASA_H_26_08_10`). A Ressoar estava certa; a errada vem de **fora**:
+a Hotmart posta o webhook de compra também direto no n8n, nos workflows
+Published **A = `ySkiGv6PY1l3TPRu`** e **B = `d9ZmqxI1vbj80GHb`** ("Comprador
+Desafio Casa H - Insere Tag no Many"), que têm o `tag_id` do ManyChat escrito
+à mão (93326298 = turma 08_10) e eram atualizados toda segunda — pararam de
+ser atualizados quando a Ressoar assumiu, mas continuaram ligados. Enquanto os
+dois sistemas aplicavam a MESMA tag, ninguém via.
+
+**Estado (fechado em 12/08/2026):** o ManyChat foi limpo (34 compradores da
+semana, conferidos assinante a assinante, só com a 08_17), o Davi desativou à
+mão os nós de tag nos dois workflows, e a varredura final pegou os 2 últimos
+que compraram no intervalo. **A planilha de compradores também foi assumida
+pela Ressoar** (`desafio_planilha_v1.sql`): automação "[RESSOA] Desafio —
+planilha de compradores" (gatilho `compra_realizada` filtrado por "Desafio
+Casa"), escrevendo na aba DA TURMA — o nome da aba sai de `nome_da_turma()`
+(o n8n apontava a aba à mão toda segunda, o mesmo ritual que quebrou a tag),
+e a função google-sheets **cria a aba com cabeçalho quando ela não existe**.
+Provado em produção com aba de rascunho criada e apagada. Com isso os
+workflows A/B do n8n podem ser desativados POR INTEIRO. Atenção: as linhas
+dos compradores da turma 08_17 escritas pelo n8n durante a semana caíram na
+aba errada (CASA_H_2026_08_10).
+
+**O banimento (`banimento_v1.sql` + função `manychat` + tela):** números que
+NUNCA recebem tag no ManyChat, por ordem do Davi. Três camadas: trava em
+`manychat_aplicar` (motor), trava na Edge Function (tela e External Request),
+e monitor `ressoa-banidos-manychat` (cron, 10 em 10 min) que procura cada
+banido lá e aplica a escada — exclusão a API **não tem** (404, medido; fica
+apontada na tela para fazer à mão) → descadastro melhor-esforço
+(`updateSubscriber`, só SMS/e-mail) → **tag ESC WHATSAPP** (id em
+`app_config.manychat_tag_esc`), que é a garantia. Os NÚMEROS moram em
+`banimento_dados.local.sql` (fora do git — dado pessoal, repo público): 3 da
+Tayna Porto, 1 do Marcos Medeiros, 1 da Ruth Eloi. Gerência na tela ManyChat →
+"Banidos do ManyChat". A Tayna não deve ter tag de comprador NUNCA — regra
+dita pelo dono.
 
 ---
 
 ## O essencial em cinco linhas
 
-- **O ActiveCampaign foi desligado e a Ressoa entrou em operação real**: o
+- **O ActiveCampaign foi desligado e a Ressoar entrou em operação real**: o
   envio de e-mail foi destravado em 05/08/2026, por decisão explícita do dono.
 - O motor roda sozinho: sete tarefas agendadas dentro do próprio Postgres,
   quatro delas a cada minuto. Os pedidos da Hotmart chegam por webhook em
@@ -22,8 +232,10 @@ reconstituir a conversa.
 - `executar_webhooks` foi **ligado em 05/08/2026** por decisão do Davi: os
   POSTs para n8n/Boost.space herdados das automações do AC voltam a sair
   quando os gatilhos (listas/tags de lançamento) receberem gente.
-- 39 armadilhas conhecidas estão em [06-PROBLEMAS-CONHECIDOS.md](06-PROBLEMAS-CONHECIDOS.md).
-  Vale ler antes de mexer em qualquer coisa; várias custaram horas.
+- 44 armadilhas conhecidas estão em [06-PROBLEMAS-CONHECIDOS.md](06-PROBLEMAS-CONHECIDOS.md).
+  Vale ler antes de mexer em qualquer coisa; várias custaram horas. As cinco últimas são de
+  06/08/2026 e tratam de identidade da pessoa: telefone, fusão de cadastro e que evento
+  pode falar com o cliente.
 
 ---
 
@@ -31,8 +243,8 @@ reconstituir a conversa.
 
 | Onde | Estado | O que significa |
 |---|---|---|
-| `envio_so_para` | **vazio** | O envio está DESTRAVADO. Campanha disparada vai para a base real. Para testar, coloque seu e-mail aí antes — e tire depois. |
-| `envio_pausado` | desligado | A fila escoa normalmente, a 100 por minuto. |
+| `envio_so_para` | **vazio** | Sem filtro de destinatário. Para testar, coloque seu e-mail aí antes — e tire depois. |
+| `envio_pausado` | **LIGADO** (06/08/2026) | A fila NÃO escoa: nenhum e-mail sai enquanto isso valer, por ordem do dono. Nada se perde — os envios ficam `queued` e saem quando despausar. |
 | `executar_webhooks` | **ligado** | Automações com passo de webhook chamam n8n/Boost.space de verdade. |
 | `reply_to_padrao` | contato@drapatriciadomingos.com.br | Quem responder um e-mail cai numa caixa real. |
 | `provedor_email` | resend | Remetente: contato@mkt.drapatriciadomingos.com.br. |
@@ -41,6 +253,83 @@ reconstituir a conversa.
 `queued` na tabela `envios` sai em até 60 segundos. Antes de testar
 qualquer coisa que toque a fila, preencha `envio_so_para` com o seu
 endereço (armadilha 28) — e esvazie de novo ao terminar.
+
+---
+
+## Quem é a pessoa, e por onde se fala com ela (06/08/2026)
+
+Um dia inteiro em cima de uma pergunta simples do dono — *"quem compra o
+Desafio está entrando na tag da turma?"* — que destravou cinco defeitos e
+duas regras novas de plataforma.
+
+### As regras que ele ditou
+
+**Só a APROVAÇÃO da compra move automação.** `PURCHASE_COMPLETE` é o aviso
+de que a garantia venceu sem reembolso: a venda virou definitiva. Isso é
+controle interno. Palavras dele: *"Pouco importa pras automações (...) O
+que importa mesmo pras automações (email e manychat, inserir tags pra
+essas automações) é o evento de compra aprovada."* O prazo nem é fixo —
+sete dias é o mínimo do Código de Defesa do Consumidor, e o vendedor pode
+dar mais, então amarrar lógica a ele seria errado em qualquer prazo.
+
+**A comunicação de um produto sai pelo contato daquela compra.**
+*"E-mails sempre devem ir para o email da compra, independente do email
+antigo. Podemos, com cpf e telefone, identificar uma pessoa e garantir a
+ela a possibilidade de ter 2 emails ou mais na base, mas as comunicações
+relativas a um produto sempre serão com o email da compra desse
+produto."* E, no mesmo dia, estendida ao telefone: *"Mesma regra pode
+valer para quando a pessoa tiver mais de um celular."*
+
+**Fundir nunca apaga.** *"Vc nunca pode deletar uma pessoa que comprou
+algo. No máximo fundir o cadastro com outro que tenhamos certeza (...) não
+deleta informações, some informações."* Cadastro absorvido tem tudo
+movido — compras, tags, listas, histórico —, e a pessoa fica com os dois
+e-mails, os dois telefones e os dois nomes.
+
+**Identidade é CPF e telefone**, não e-mail. E-mail a pessoa troca.
+
+### O que estava quebrado
+
+| Defeito | O que causava |
+|---|---|
+| Fim de garantia movia automação | Quem comprou na semana passada caía na turma desta semana e recebia o WhatsApp errado. Aconteceu com 21 pessoas. |
+| Boleto atrasado rebaixava compra paga | O aviso de boleto que falhou voltava minutos depois, já com a compra aprovada, e a regravava como `pendente`. O comprador sumia da lista de compradores **sem nada denunciar**. |
+| ManyChat recusava quem já existia | A busca só olhava o campo personalizado; quem entrou por lá tem o número no campo de SISTEMA. A criação era recusada com *"WhatsApp já existe"* e a pessoa ficava sem a tag. |
+| Order bump perdia item | Dois webhooks no mesmo segundo, ambos tentando criar a pessoa; o segundo esbarrava na chave única e a função desistia. |
+| O 55 do Brasil em número de fora | `+41 79 598 8121` (Suíça) virou `5541795988121`. Ver a seção do telefone, abaixo. |
+
+### A turma que originou tudo
+
+`CASA_H_2026_08_10` tinha **29 pessoas: 8 certas e 21 erradas**. Fechou com
+**86, todas conferidas contra o histórico da Hotmart**, transação a
+transação, sem diferença.
+
+### O que ficou na base
+
+- **CPF recuperado para 5.998 pessoas.** A Hotmart manda o documento em
+  100% das compras; a coluna existia desde a migração e estava **zerada**.
+- **E-mail e telefone de cada compra**, guardados na própria compra:
+  10.397 e 10.072 das 10.432. Antes se perdiam — quem comprava com
+  endereço novo era casado pelo WhatsApp com o cadastro antigo, a pessoa
+  certa e o contato errado.
+- **107 cadastros duplicados fundidos** (34 por CPF, 73 por telefone), sem
+  perder uma única compra: faturamento idêntico antes e depois
+  (R$ 1.771.192,78). Hoje **não existe CPF nem telefone repetido na base**.
+- `lead_emails` e `lead_telefones` guardam tudo que se sabe de uma pessoa,
+  com o nome que veio junto de cada contato.
+
+### Onde isso vive
+
+`email_para_contato(pessoa, produto)` e `whatsapp_para_contato(pessoa,
+produto)` respondem para onde mandar. A automação diz de qual produto fala
+pelo campo **produto** (Automações → a caixinha "Fala de:" ao lado do
+nome); vazio, a mensagem vai para o contato principal — que é o certo para
+o que não é sobre um produto. O endereço é escolhido no enfileiramento e
+**gravado no envio**, então o relatório mostra para onde cada e-mail
+realmente foi.
+
+Compra feita pela própria equipe não define contato de cliente: os
+endereços da casa estão em `emails_da_operacao`.
 
 ---
 
@@ -85,7 +374,7 @@ endereço (armadilha 28) — e esvazie de novo ao terminar.
 
 1. **Nó "Formatar telefone" do n8n** (workflows `ySkiGv6PY1l3TPRu` e
    `d9ZmqxI1vbj80GHb`) ainda tem a regra antiga que inventa nono dígito em
-   telefone fixo. A Ressoa já foi corrigida; o n8n é do Davi. Com os
+   telefone fixo. A Ressoar já foi corrigida; o n8n é do Davi. Com os
    webhooks ligados, o risco voltou a ser real — pendência viva.
 2. **Povoar as listas "Compradores …" com quem já comprou?** As regras
    novas valem para compras futuras; os compradores históricos (Livro
@@ -94,7 +383,7 @@ endereço (armadilha 28) — e esvazie de novo ao terminar.
    seguro: lista recém-criada não tem automação pendurada, nenhum e-mail
    nem webhook sai.
 3. **Verificar o primeiro disparo real de webhook.** Os gatilhos das
-   automações com webhook (que moram AQUI na Ressoa e chamam n8n/Boost)
+   automações com webhook (que moram AQUI na Ressoar e chamam n8n/Boost)
    são listas/tags de lançamento, hoje sem tráfego — o primeiro POST real
    deve acontecer no próximo lançamento. Nada a fazer; só conferir quando
    houver.
@@ -477,7 +766,7 @@ significava três coisas diferentes aqui, e só uma delas estava errada:
 
 | Onde aparece | O que é | O que fiz |
 |---|---|---|
-| "pro seu Active" | nome antigo **deste** projeto | virou "pra sua Ressoa" |
+| "pro seu Active" | nome antigo **deste** projeto | virou "pra sua Ressoar" |
 | "ActiveCampaign", "AC" | o sistema de onde a base veio | **fica** — é história real |
 | `isActive` | propriedade do React Router | **fica** — é código |
 
@@ -528,12 +817,12 @@ existe mais.
 
 ## Lives semanais: a planilha fecha o ciclo (06/08/2026)
 
-Conta Google conectada (a conta pessoal do Davi, projeto Cloud "Ressoa") e o
+Conta Google conectada (a conta pessoal do Davi, projeto Cloud "Ressoar") e o
 passo de planilha plantado na automação das lives, apontando para
 "[PATRÍCIA DOMINGOS] Lives semanais - inscritos". Uma inscrição real
 percorreu: lista → tag → ManyChat (01:10) → **linha na planilha (01:11)**.
 
-**Corrigido no caminho: a coluna "ID do Contato" recebia o uuid da Ressoa.**
+**Corrigido no caminho: a coluna "ID do Contato" recebia o uuid da Ressoar.**
 Aquela planilha sempre guardou ali o identificador do **ManyChat**
 (`1347252605`), que é o que permite cruzar com a conta de lá. O pacote que o
 motor manda aos passos (`payload_contato`) não levava esse número — agora
@@ -547,7 +836,7 @@ ManyChat no minuto seguinte → planilha no outro. Cerca de 2 a 3 minutos até
 a linha aparecer. Um fluxo com cinco passos leva cinco minutos.
 
 **Linhas de teste:** quatro linhas escritas durante os testes (o uuid errado
-e um "TESTE Ressoa") foram apagadas da planilha em 06/08 01:05.
+e um "TESTE Ressoar") foram apagadas da planilha em 06/08 01:05.
 
 ---
 
@@ -659,7 +948,7 @@ O que já existe aqui (criado e testado em 05/08/2026):
   n8n aplicava no ManyChat.
 - **Formulário publicado `lives-semanais`** — inscreve na lista 6 (Lives
   Semanais) e aplica a tag 85. Tem página própria em
-  `ressoa.drapatriciadomingos.com.br/f/lives-semanais`, e aceita POST direto
+  `ressoar.drapatriciadomingos.com.br/f/lives-semanais`, e aceita POST direto
   com `form_slug=lives-semanais` + `nome`, `email`, `whatsapp`. (O endereço
   `…supabase.co/functions/v1/formulario?f=slug` **não** serve como página: o
   domínio de funções devolve HTML como `text/plain`, e o visitante veria o
@@ -690,14 +979,14 @@ ligado e a decisão do Davi de manter a planilha como segurança):
    exigiria inventar um telefone, e número inventado pode ser de terceiro real).
 2. ~~**Planilha sem n8n.**~~ **FEITO E PROVADO em 06/08 (madrugada).** A conta
    Google (a conta pessoal do Davi) foi conectada em Configurações → Planilhas —
-   agora é um botão só; o app OAuth ("Ressoa", projeto Google Cloud
+   agora é um botão só; o app OAuth ("Ressoar", projeto Google Cloud
    `ressoa-504702`, consentimento Em produção) mora nos secrets da função
    (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`), não na tela. O passo
    `google_sheets` nativo foi plantado na automação "[RESSOA] Lives
    Semanais" (ordem 2, depois do ManyChat) apontando para a planilha real
    "[PATRÍCIA DOMINGOS] Lives semanais - inscritos" (`1l3wE_XQ…`, aba
    Página1, colunas ID do Contato | WhatsApp | Nome | E-mail; "ID do
-   Contato" agora recebe o lead_id da Ressoa — antes era o assinante do
+   Contato" agora recebe o lead_id da Ressoar — antes era o assinante do
    ManyChat). Prova real: `executar_passo_planilha` com o lead do Davi
    escreveu a linha 487 na planilha (as 486 anteriores são do n8n), com
    sucesso registrado em `google_sheets_log`. A réplica "Automação 19"
@@ -720,7 +1009,7 @@ ligado e a decisão do Davi de manter a planilha como segurança):
    O `google_sheets` nativo continua sem estreia: depende da conta Google.
 4. **Nada de arquivar o n8n**: decisão do Davi em 05/08 — os fluxos ficam
    como reserva. A planilha das lives passa a ser alimentada pela própria
-   Ressoa (passo 2), e o registro-mestre é a base (Leads → tag 85).
+   Ressoar (passo 2), e o registro-mestre é a base (Leads → tag 85).
 
 Correção do mesmo dia: a nota anterior dizia que a tabela `segredos` estava
 vazia — era um erro de leitura (consulta com `limit=0`, que devolve vazio por
@@ -733,7 +1022,7 @@ definição). `manychat_api_key` e `service_key` estão lá desde 02/08.
 Em 02–03/08/2026, os relatórios anuais definitivos da Hotmart foram conferidos
 e importados diretamente no Supabase (`scripts/importar_vendas_hotmart_csv.py`).
 Eles contêm 10.178 transações únicas entre 02/08/2025 e 02/08/2026. Destas,
-2.600 já estavam no Ressoa; a carga acrescentou 7.578 vendas e criou 183 leads.
+2.600 já estavam no Ressoar; a carga acrescentou 7.578 vendas e criou 183 leads.
 Uma transação válida de um relatório anterior, imediatamente anterior ao horário
 inicial do relatório anual, também foi preservada — por isso a origem
 `hotmart_csv` tem 10.179 transações.
@@ -782,15 +1071,15 @@ colateral escondido:
   preciso buscar ou criar a pessoa.
 
 Na página **Leads**, cada linha e o detalhe do lead têm a ação "ManyChat". A
-gaveta procura automaticamente pelo WhatsApp da Ressoa, oferece a criação se o
+gaveta procura automaticamente pelo WhatsApp da Ressoar, oferece a criação se o
 usuário não existir e, quando encontra, permite aplicar ou remover tags. Leads
-sem WhatsApp precisam receber o número na Ressoa antes dessas operações.
+sem WhatsApp precisam receber o número na Ressoar antes dessas operações.
 
 ---
 
 ## Telefone: a regra que custou dois erros
 
-O número é a chave que liga a Ressoa ao ManyChat. Errar o casamento é aplicar
+O número é a chave que liga a Ressoar ao ManyChat. Errar o casamento é aplicar
 tag na pessoa errada — e tag no ManyChat dispara mensagem de WhatsApp.
 
 **A forma canônica é `DDI + DDD (sem o zero) + número`:** `5551999990000`.

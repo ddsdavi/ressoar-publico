@@ -18,7 +18,7 @@ porque a venda acontece fora dele.
 
 ## Ligar a Hotmart
 
-No Ressoa, vá em **Desenvolvedor → API & Webhooks** e copie o endereço de venda. É este,
+No Ressoar, vá em **Desenvolvedor → API & Webhooks** e copie o endereço de venda. É este,
 com o código do seu projeto:
 
 ```
@@ -29,7 +29,7 @@ Na Hotmart: **Ferramentas → Webhook (API e notificações) → Cadastrar Webho
 
 | Campo | Valor |
 |---|---|
-| Nome | `Ressoa` |
+| Nome | `Ressoar` |
 | URL | o endereço copiado |
 | Versão | **2.0.0** |
 | Produtos | **Todos os produtos** |
@@ -41,12 +41,12 @@ Três decisões aí merecem explicação.
 mudam de nome e nada casa.
 
 **"Todos os produtos", não um por um.** Assim a Hotmart manda tudo e quem decide o que
-fazer com cada produto é o Ressoa. Produto novo vira uma linha numa tela, não uma volta à
+fazer com cada produto é o Ressoar. Produto novo vira uma linha numa tela, não uma volta à
 Hotmart.
 
 **Marque todos os nove eventos de pedido da especificação 2.0.0:**
 
-| Evento Hotmart | Estado no Ressoa | É compra? | Move automação? |
+| Evento Hotmart | Estado no Ressoar | É compra? | Move automação? |
 |---|---|---|---|
 | `PURCHASE_APPROVED` | aprovada | sim | **sim** |
 | `PURCHASE_COMPLETE` | aprovada | sim | **não** |
@@ -106,9 +106,11 @@ npx supabase secrets set VENDA_SEGREDO=SEU_HOTTOK --project-ref SEU-PROJETO
 1. **O corpo cru é guardado** em `hotmart_eventos`, antes de qualquer processamento.
    Webhook de venda é dinheiro: se algo falhar no meio, a Hotmart não reenvia para sempre,
    e sem o original não há como reprocessar nem descobrir o que deu errado.
-2. **A pessoa é localizada** por WhatsApp, depois por e-mail. Se não existir, é criada.
+2. **A pessoa é localizada** por CPF, depois WhatsApp, depois e-mail. Se não existir, é
+   criada. O CPF vem na compra e é o identificador mais forte que existe aqui: e-mail a
+   pessoa troca, telefone ela troca, CPF não.
 3. **O pedido é gravado** com produto, valor, forma de pagamento, parcelas, estado, evento
-   de origem e a data real. Isso não o transforma em compra.
+   de origem, a data real — e **com qual e-mail e qual telefone aquela compra foi feita**.
 4. **A origem é aberta** em campos utilizáveis (veja abaixo).
 5. **Somente se estiver aprovado**, a regra do produto é aplicada: entra na lista e ganha
    a tag.
@@ -118,6 +120,51 @@ npx supabase secrets set VENDA_SEGREDO=SEU_HOTTOK --project-ref SEU-PROJETO
 
 Reenviar o mesmo evento **não duplica**: o código da transação é único e a linha existente
 é atualizada. É assim que um reembolso lançado depois corrige a venda que já estava lá.
+
+---
+
+## Cada produto fala pelo contato da sua compra
+
+Regra do dono (06/08/2026): **a comunicação de um produto vai para o e-mail e o telefone
+com que aquele produto foi comprado** — não para o cadastro antigo.
+
+> "E-mails sempre devem ir para o email da compra, independente do email antigo. Podemos,
+> com cpf e telefone, identificar uma pessoa e garantir a ela a possibilidade de ter 2
+> emails ou mais na base, mas as comunicações relativas a um produto sempre serão com o
+> email da compra desse produto."
+
+Uma pessoa é **uma só** — reconhecida pelo CPF —, e pode ter vários contatos:
+
+| | |
+|---|---|
+| Produto A, comprado com o e-mail A | comunicação do A vai para o e-mail A |
+| Produto B, comprado com o e-mail B | comunicação do B vai para o e-mail B |
+| Assunto que não é sobre produto | vai para o contato principal |
+
+O mesmo vale para o telefone: o WhatsApp de um produto vai para o número usado naquela
+compra. Isso passou a importar quando cadastros duplicados foram fundidos e dezenas de
+pessoas ficaram com mais de um celular conhecido.
+
+**Como o sistema sabe de que produto uma automação fala:** pelo campo **produto** da
+automação — a caixinha "Fala de:", ao lado do nome, no editor. Vazio, os e-mails vão para o
+contato principal, que é o certo para newsletter e convite de live. Preenchido, vão para o
+contato daquela compra.
+
+Duas coisas que o desenho garante:
+
+- **O endereço é escolhido no enfileiramento e gravado no envio.** O relatório mostra para
+  onde cada e-mail realmente foi, e uma troca de cadastro depois não reescreve a história.
+- **A supressão vale para o endereço que vai receber.** Quem pediu descadastro num e-mail
+  não volta a receber só porque comprou com outro.
+
+Compra feita pela própria equipe é exceção: quando o suporte preenche o checkout pela
+cliente, o endereço da casa não vira endereço de comunicação dela. Esses endereços ficam em
+`emails_da_operacao`.
+
+**Onde isso mora:** `email_para_contato(pessoa, produto)` e `whatsapp_para_contato(pessoa,
+produto)`. Todos os contatos conhecidos de uma pessoa ficam em `lead_emails` e
+`lead_telefones`, cada um com o nome que veio junto — a mesma pessoa se escreve de mais de
+um jeito, e os dois jeitos têm valor.
 
 ---
 

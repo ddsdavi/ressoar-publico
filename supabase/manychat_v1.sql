@@ -1,7 +1,7 @@
 -- =====================================================================
 -- MANYCHAT
 --
--- A chave da API fica guardada dentro da Ressoa e é trocável pela tela —
+-- A chave da API fica guardada dentro da Ressoar e é trocável pela tela —
 -- ninguém precisa mexer em arquivo nem chamar programador para trocar.
 --
 -- Onde ela mora importa. Não vai para app_config: a tela de Configurações

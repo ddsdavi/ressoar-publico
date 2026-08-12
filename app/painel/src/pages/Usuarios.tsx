@@ -54,7 +54,7 @@ export default function Usuarios() {
   return (
     <div>
       <h1>Usuários <span className="contagem">({lista.length})</span></h1>
-      <div className="sub">Quem entra no Ressoa e o que cada pessoa pode fazer.
+      <div className="sub">Quem entra no Ressoar e o que cada pessoa pode fazer.
         <Ajuda>
           Qualquer pessoa pode criar uma conta, mas ninguém entra antes de você liberar aqui —
           cadastro novo nasce como <b>Assistente</b> e <b>pendente</b>.

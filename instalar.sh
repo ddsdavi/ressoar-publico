@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# RESSOA — instalador de 1 comando.
+# RESSOAR — instalador de 1 comando.
 #   ./instalar.sh              instala tudo
 #   ./instalar.sh --so-banco   só cria/atualiza o banco
 #   ./instalar.sh --so-painel  só publica o painel
@@ -61,9 +61,13 @@ if [ "$SO_BANCO" = false ]; then
   verde "  Dependências instaladas"
 
   passo "4/6 Gerando o arquivo de configuração do painel"
+  # A assinatura vem junto: este arquivo é REESCRITO a cada instalação, e sem
+  # estas duas linhas o --so-painel publicava um painel sem assinatura nenhuma.
   cat > app/painel/.env.local <<EOF
 VITE_SUPABASE_URL=$SUPABASE_URL
 VITE_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+VITE_MARCA_NOME=${VITE_MARCA_NOME:-}
+VITE_MARCA_RODAPE=${VITE_MARCA_RODAPE:-}
 EOF
   verde "  app/painel/.env.local criado"
 
@@ -80,6 +84,10 @@ EOF
   else
     amarelo "  (canal transacional não configurado — códigos de segurança não serão enviados)"
   fi
+  # Pela API, nao pelo CLI (ver scripts/definir_secret.py). E grava SEMPRE,
+  # inclusive vazio.
+  MARCA_NOME="${VITE_MARCA_NOME:-}" "$PY" scripts/definir_secret.py MARCA_NOME
+  verde "  Assinatura dos e-mails de conta configurada"
   if [ -n "${AWS_ACCESS_KEY_ID:-}" ] && [ -n "${AWS_SECRET_ACCESS_KEY:-}" ]; then
     (cd app && npx --yes supabase secrets set \
         AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
@@ -118,7 +126,7 @@ fi
 cat <<'FIM'
 
 ============================================================
-  RESSOA INSTALADO
+  RESSOAR INSTALADO
 ============================================================
 
 O QUE FAZER AGORA

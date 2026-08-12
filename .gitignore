@@ -46,6 +46,12 @@ blueprint/
 # SQL específico de UMA operação (produtos, consertos pontuais)
 operacao/
 
+# scratch de ferramenta (briefs, relatórios, pacotes de revisão) — a rotina
+# de publicação deste repo é `git add -A` seguido de push da árvore inteira
+# para um espelho PÚBLICO, então pasta de ferramenta fora do ignore é
+# vazamento esperando acontecer
+.superpowers/
+
 # Sobras de depuração com dado de gente real. Um script meu já gravou um
 # fones.txt na raiz por um caminho mal montado — a regra existe para o
 # próximo escorregão não virar commit.

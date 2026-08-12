@@ -68,7 +68,7 @@ declare
   v_d jsonb := public.resumo_diario_dados();
   v_para text := coalesce(public.cfg('resumo_diario_para'), '');
   v_key text := public.cfg('resend_api_key');
-  v_de text := coalesce(public.cfg('from_name_padrao'), 'Ressoa') || ' <'
+  v_de text := coalesce(public.cfg('from_name_padrao'), 'Ressoar') || ' <'
                || coalesce(public.cfg('from_email_padrao'), '') || '>';
   v_html text;
   v_alertas text := '';
@@ -102,7 +102,7 @@ begin
 
   v_html :=
     '<div style="font-family:Arial,Helvetica,sans-serif;color:#3c3646;max-width:600px">'
-    || '<h2 style="color:#6b4ea8;margin-bottom:2px">Ressoa · resumo do dia</h2>'
+    || '<h2 style="color:#6b4ea8;margin-bottom:2px">Ressoar · resumo do dia</h2>'
     || '<p style="color:#777;margin-top:0">'
     || to_char(now() at time zone 'America/Sao_Paulo', 'DD/MM/YYYY') || '</p>'
     || v_alertas
@@ -129,7 +129,7 @@ begin
     || '</ul>'
     || '<h3>Pronto para vender</h3>'
     || '<p><b>' || (v_d->>'janela_quente') || '</b> pessoas estão na janela quente da Formação agora.</p>'
-    || '<p style="margin-top:22px"><a href="https://ressoa.drapatriciadomingos.com.br/leadscoring"'
+    || '<p style="margin-top:22px"><a href="https://ressoar.drapatriciadomingos.com.br/leadscoring"'
     || ' style="background:#6b4ea8;color:#fff;padding:10px 18px;border-radius:8px;'
     || 'text-decoration:none">Abrir o Lead scoring</a></p>'
     || '<p style="color:#999;font-size:12px;margin-top:20px">Resumo automático da sua operação. '
@@ -141,7 +141,7 @@ begin
       'from', v_de,
       'to', (select jsonb_agg(btrim(x)) from unnest(string_to_array(v_para, ',')) x
              where btrim(x) <> ''),
-      'subject', 'Ressoa · ' || (v_d->>'compras') || ' compras, R$ ' || (v_d->>'receita')
+      'subject', 'Ressoar · ' || (v_d->>'compras') || ' compras, R$ ' || (v_d->>'receita')
                  || ' nas últimas 24h',
       'html', v_html),
     headers := jsonb_build_object('Authorization', 'Bearer ' || v_key,

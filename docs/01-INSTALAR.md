@@ -1,6 +1,6 @@
 # Instalar do zero
 
-Recriar o Ressoa inteiro num projeto novo. Tempo: ~30 minutos.
+Recriar o Ressoar inteiro num projeto novo. Tempo: ~30 minutos.
 
 ---
 

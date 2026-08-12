@@ -117,7 +117,7 @@ function Layout() {
             <circle cx="16" cy="16" r="4" fill="#fff" />
             <path d="M16 6a10 10 0 0 1 0 20M16 2a14 14 0 0 1 0 28" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
           </svg>
-          Ressoa
+          Ressoar
         </NavLink>
         <div className="direita">
           <button className="ajuda-tour" title="Rever o tour guiado"

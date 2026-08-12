@@ -17,7 +17,7 @@ O que faz:
   - cria as tags que faltam e liga quem está marcado lá
 
 O que NÃO faz, de propósito:
-  - não apaga nada. Tag que existe aqui e não no CSV fica: a Ressoa aplica
+  - não apaga nada. Tag que existe aqui e não no CSV fica: a Ressoar aplica
     tags próprias (turma por compra da Hotmart, por exemplo) que o
     ActiveCampaign nunca vai conhecer. Apagar pelo CSV desfaria isso.
 """

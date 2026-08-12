@@ -240,7 +240,7 @@ export default function Envios() {
           <div className="rot">Entregues (confirmado)
             <Ajuda>
               O provedor de destino confirmou que recebeu. Essa confirmação chega por
-              postback — se o webhook do provedor não estiver apontado para o Ressoa, este
+              postback — se o webhook do provedor não estiver apontado para o Ressoar, este
               número fica parado mesmo com tudo funcionando.
             </Ajuda>
           </div></div>

@@ -113,7 +113,7 @@ const CAMPOS_PLANILHA: [string, string][] = [
   ["nome", "Nome"],
   ["email", "E-mail"],
   ["whatsapp", "WhatsApp"],
-  ["lead_id", "ID do lead (aqui na Ressoa)"],
+  ["lead_id", "ID do lead (aqui na Ressoar)"],
   ["manychat_id", "ID no ManyChat"],
   ["data_hora", "Data e hora (São Paulo)"],
   ["__atributo", "Um campo personalizado…"],
@@ -1264,7 +1264,7 @@ export default function FluxoAutomacao({
                       value={passos[editando].config.url ?? ""}
                       onChange={(e) => mudarPasso(editando as number, { url: e.target.value })} />
                     <div className="aviso" style={{ marginTop: 10 }}>
-                      <b>Como funciona:</b> o Ressoa manda o contato completo para o seu n8n, e o
+                      <b>Como funciona:</b> o Ressoar manda o contato completo para o seu n8n, e o
                       n8n escreve no Drive. No n8n: um nó <b>Webhook</b> recebendo POST, ligado a
                       um nó <b>Google Drive</b>. Os campos do contato chegam em <code>contato</code>.
                     </div>

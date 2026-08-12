@@ -1,5 +1,5 @@
 -- =====================================================================
--- AUTH v1 do Ressoa — área logada com papéis:
+-- AUTH v1 do Ressoar — área logada com papéis:
 --   admin      → tudo (Davi/a dona da conta)
 --   terapeuta  → opera leads/campanhas/mensagens/automações (sem config/API)
 --   assistente → somente leitura

@@ -453,7 +453,7 @@ export default function Vendas() {
           <div className="sub">
             Uma regra por produto: o que acontece com a pessoa quando ela compra.
             <Ajuda>
-              A Hotmart avisa a Ressoa a cada compra — isso já funciona e é uma configuração
+              A Hotmart avisa a Ressoar a cada compra — isso já funciona e é uma configuração
               só, para todos os produtos (o endereço fica em Configurações → API e webhooks).
               O que muda de produto para produto é o <b>depois</b>: em que lista a pessoa
               entra, que tag ganha, se é marcada no ManyChat. É isso que se define aqui.
@@ -723,7 +723,7 @@ export default function Vendas() {
             <div className="bloco-campo">
               <h3><span className="selo-num">1</span> Qual produto é</h3>
               <div className="sub">
-                Como a Ressoa reconhece a compra quando ela chega da Hotmart.
+                Como a Ressoar reconhece a compra quando ela chega da Hotmart.
               </div>
 
               <label>Nome do produto (como você chama)</label>

@@ -93,7 +93,7 @@ headers={"User-Agent": "ressoa/1.0", ...}
 **Causa:** o Supabase só deixa personalizar os e-mails de autenticação com SMTP próprio.
 Além disso, o serviço de e-mail padrão dele é limitado a poucos envios por hora.
 
-**Solução adotada:** o Ressoa **não usa** o e-mail do Supabase para recuperar senha.
+**Solução adotada:** o Ressoar **não usa** o e-mail do Supabase para recuperar senha.
 Tem fluxo próprio (`conta-email` → código de 6 dígitos → e-mail da marca pelo webhook).
 
 ---
@@ -501,7 +501,7 @@ um assinante cujo número você acabou de ler na própria API.
    funcione — o problema não é o `+55`.
 
 **A saída é inverter o sentido.** Quem sabe quem é a pessoa é o ManyChat. Dentro do fluxo
-dele, uma ação **External Request** manda o `subscriber_id` para a Ressoa, que guarda em
+dele, uma ação **External Request** manda o `subscriber_id` para a Ressoar, que guarda em
 `tabela_1_leads.manychat_id`. Daí em diante marcar é direto, sem busca:
 
 - URL: `POST https://SEU-PROJETO.supabase.co/functions/v1/manychat`
@@ -512,7 +512,7 @@ dele, uma ação **External Request** manda o `subscriber_id` para a Ressoa, que
  "whatsapp":"{{phone}}","nome":"{{first_name}} {{last_name}}"}
 ```
 
-A Ressoa casa por `manychat_id`, depois por e-mail, depois por WhatsApp — e cria o
+A Ressoar casa por `manychat_id`, depois por e-mail, depois por WhatsApp — e cria o
 contato se não achar nenhum. Foi assim que um assinante real da conta foi reconhecido
 **pelo WhatsApp** e ligado ao lead que já existia aqui.
 
@@ -590,13 +590,13 @@ descarta o primeiro dígito do DDD:
 
 Duas pessoas, dois estados, o mesmo resultado.
 
-**Por que é grave aqui:** o número é a chave que liga a Ressoa ao ManyChat. Um casamento
+**Por que é grave aqui:** o número é a chave que liga a Ressoar ao ManyChat. Um casamento
 errado aplica a tag na pessoa errada — e tag no ManyChat dispara mensagem de WhatsApp.
 Alguém que não comprou recebe a mensagem de quem comprou.
 
 **Correção:** normalizar os dois lados para a **mesma forma canônica** antes de comparar,
 com as mesmas regras que a ponte com o ManyChat usa (`public.normalizar_telefone`). Se as
-regras divergirem, a Ressoa passa a achar uma pessoa e o ManyChat outra.
+regras divergirem, a Ressoar passa a achar uma pessoa e o ManyChat outra.
 
 **Como conferir:**
 
@@ -632,12 +632,12 @@ existe exceção regional. Então um número de 12 dígitos ou é fixo (e não t
 **Correção:** olhar o primeiro dígito depois do DDD antes de decidir. Na base havia 206
 números de 12 dígitos: 185 eram celulares velhos, **21 eram fixos**.
 
-**Por que é grave:** o número é a chave que liga a Ressoa ao ManyChat. Número inventado
+**Por que é grave:** o número é a chave que liga a Ressoar ao ManyChat. Número inventado
 aplica tag na pessoa errada, e tag no ManyChat dispara WhatsApp.
 
 **A regra vive em três lugares e os três precisam concordar:**
 `public.normalizar_telefone`, `formatarTelefone` na função do ManyChat, e o nó
-"Formatar telefone" do n8n. Se divergirem, a Ressoa acha uma pessoa e o ManyChat outra.
+"Formatar telefone" do n8n. Se divergirem, a Ressoar acha uma pessoa e o ManyChat outra.
 
 ```sql
 select public.normalizar_telefone('551133334444') is null;   -- fixo: tem que ser true
@@ -789,3 +789,121 @@ for (const a of new Set([...html.matchAll(/\/assets\/[\w.-]+\.(?:js|css)/g)].map
   await fetch(a, { cache: 'reload' });
 location.reload();
 ```
+
+---
+
+## 40. O 55 do Brasil não é o 55 de Santa Maria
+
+**Sintoma:** uma compradora da Suíça ficou com o telefone `5541795988121` na base — um
+número que não existe. O original era `+41 79 598 8121`.
+
+**Causa:** o código colava `55` na frente de qualquer número com 10 ou 11 dígitos. O DDI do
+Brasil é 55; o DDD de Santa Maria (RS) **também** é 55. Tratados como a mesma coisa, um
+número suíço de 11 dígitos vira "celular brasileiro sem DDI".
+
+**O que separa um do outro não é o "55"**: é o comprimento do número inteiro e o que vem
+depois dele.
+
+```
+55 9 9999-9999        11 dígitos  ->  DDD 55 + celular. Falta o DDI.
+55 55 9 9999-9999     13 dígitos  ->  DDI 55 + DDD 55 + celular. Completo.
+```
+
+**As regras oficiais, que agora estão no código** (Anatel / Plano de Numeração Brasileiro):
+
+- Existem **67 DDDs**, e não a faixa de 11 a 99. Estes 22 números NÃO são DDD: 20, 23, 25,
+  26, 29, 30, 36, 39, 40, 50, 52, 56, 57, 58, 59, 60, 70, 72, 76, 78, 80 e 90.
+- Celular tem 9 dígitos e começa com **9**. Fixo tem 8 e começa com **2 a 5**.
+- O mapa de DDI cobre o mundo inteiro por código ISO do país, não só os países que já
+  apareceram em compra. Quem compra de Portugal com 9 dígitos ganha o `351` — antes o
+  número era **descartado** por ser "curto demais".
+
+**O maldito zero do DDD.** Antigamente se discava `0` + DDD (`017`, `011`), e muita gente
+digita assim até hoje. Com o DDI junto vira `55` + `017` + número — 14 dígitos que não
+existem. Tira-se o zero: `55017997921200` é `5517997921200`. Sem ambiguidade possível,
+porque **DDD 50 não existe** — nenhum número válido começa com `550`.
+
+**Onde vive:** `app/functions/venda/telefone.ts`, com 16 testes em `telefone.test.ts`,
+incluindo o caso que dói (`55999887766` de Santa Maria vira `5555999887766`, e quem já tem
+o DDI não ganha um terceiro).
+
+**A lição que quase custou caro:** antes da regra correta, 337 telefones começando com
+`5555` pareciam quebrados e uma "padronização" foi cogitada. Pela regra oficial, **208
+deles estavam certos** — gaúchos de Santa Maria com o número completo. A varredura teria
+destruído o telefone dessas pessoas. Em telefone, na dúvida, não mexer.
+
+---
+
+## 41. Copiar campo único de um cadastro que ainda existe
+
+**Sintoma:** sete fusões de cadastro morreram no meio com
+`duplicate key value violates unique constraint "tabela_1_leads_whatsapp_key"`.
+
+**Causa:** a fusão movia tudo, e no fim copiava para o cadastro que fica o que faltava nele
+(`whatsapp`, `cpf`, `manychat_id`) — **antes** de retirar o cadastro absorvido. Como esses
+três campos são únicos na tabela, o número colidia **com ele mesmo**: ainda estava no
+registro que só sairia na linha seguinte.
+
+**Correção:** inverter a ordem. Retira o cadastro vazio primeiro, completa depois. Os
+valores vêm de um `record` lido em memória no início da função, que sobrevive ao `delete`.
+
+**Regra que fica:** ao mover dados entre linhas com restrição de unicidade, **libere o valor
+antes de reusá-lo**. E vale para qualquer campo único, não só telefone.
+
+---
+
+## 42. Evento de controle interno não pode acionar o cliente
+
+**Sintoma:** 21 pessoas que compraram o Desafio em 29/07 foram jogadas na turma de 10/08 e
+marcadas no ManyChat, recebendo o WhatsApp de uma turma que não era a delas.
+
+**Causa:** `PURCHASE_COMPLETE` — o aviso de que a garantia venceu sem reembolso — era
+tratado como entrada de comprador. Ele chega **sete dias depois** da compra, e a turma era
+calculada com a data de hoje.
+
+**Duas travas, não uma:** o aviso de fim de garantia deixou de chamar o mapa de produto (a
+venda continua sendo atualizada — é o registro do dinheiro), e a chamada do mapa passou a
+levar a **data da compra**. São a mesma coisa quando o aviso chega em tempo real, e coisas
+muito diferentes quando chega atrasado ou quando alguém reprocessa histórico.
+
+**Regra que fica:** antes de ligar um evento a uma automação, pergunte *quando* ele chega e
+*o que ele significa*. Fim de garantia, confirmação de acesso e conclusão de módulo são
+controle interno. Quem manda em comunicação é a **aprovação da compra**.
+
+---
+
+## 43. Ordem de chegada não é ordem dos fatos
+
+**Sintoma:** três compras aprovadas do Desafio apareciam como `pendente` na base. O
+comprador sumia da lista de compradores e nada denunciava — o painel mostrava a venda,
+só que com o estado errado.
+
+**Causa:** os avisos da Hotmart não chegam em ordem. Um aviso de boleto que falhou é
+reenviado ~13 minutos depois, quando a compra **já foi aprovada**, e o upsert regravava o
+estado antigo por cima do novo.
+
+**Correção:** compra aprovada não volta a ser `pendente` nem `expirada`. Depois da
+aprovação, só reembolso, chargeback e cancelamento mudam o estado. O mesmo aviso atrasado
+também deixou de gerar evento de recuperação de boleto — que pediria pagamento a quem já
+pagou.
+
+**Como achar de novo:** cruze o estado da base com o histórico exportado da Hotmart. Foi
+assim que os três apareceram: a planilha dizia "Aprovado" onde a base dizia "pendente".
+
+---
+
+## 44. Order bump: dois webhooks no mesmo segundo
+
+**Sintoma:** oito compras entre 03 e 06/08/2026 registraram
+`duplicate key value violates unique constraint "tabela_1_leads_whatsapp_key"` e o item
+sumia.
+
+**Causa:** order bump e upsell são vendidos no mesmo checkout, e a Hotmart manda **um
+webhook por item**. Os dois chegam no mesmo segundo, ambos procuram a pessoa, nenhum acha,
+ambos tentam criar — e o segundo esbarra na chave única. A função desistia.
+
+**Correção:** ao esbarrar, procurar de novo. Quem acabou de criar a pessoa foi o outro item
+da mesma compra; cada um segue como a operação distinta que é.
+
+**Regra que fica:** onde há criação concorrente, `insert` que falha por duplicidade não é
+erro — é sinal de que outro processo chegou primeiro. Buscar de novo, não desistir.

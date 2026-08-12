@@ -1,7 +1,7 @@
 -- Descobrir os produtos a partir dos eventos que já chegaram.
 --
 -- Com uma configuração única para "todos os produtos", a Hotmart manda
--- tudo e é o Ressoa que decide o que fazer com cada um. Então o mapa
+-- tudo e é o Ressoar que decide o que fazer com cada um. Então o mapa
 -- precisa ser fácil de preencher — e o mais fácil é não digitar nada:
 -- os nomes e ucodes vêm dos próprios eventos recebidos.
 begin;

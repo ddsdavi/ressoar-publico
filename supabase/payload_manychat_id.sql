@@ -3,7 +3,7 @@
 --
 -- Por que isso importa: a planilha das lives tem uma coluna "ID do
 -- Contato" que sempre guardou o identificador do ManyChat (1347252605),
--- não o da Ressoa. Sem esse número no pacote, o passo de planilha só
+-- não o da Ressoar. Sem esse número no pacote, o passo de planilha só
 -- tinha o uuid daqui para oferecer — e escrevia o número errado numa
 -- coluna que alguém pode usar para cruzar dados lá.
 --

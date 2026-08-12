@@ -66,7 +66,7 @@ end;
 $$;
 
 comment on function public.excluir_lead_ressoa(uuid) is
-  'Exclui atomicamente um lead da Ressoa e seus vinculos internos. Somente admin.';
+  'Exclui atomicamente um lead da Ressoar e seus vinculos internos. Somente admin.';
 
 revoke all on function public.excluir_lead_ressoa(uuid) from public, anon;
 grant execute on function public.excluir_lead_ressoa(uuid) to authenticated;

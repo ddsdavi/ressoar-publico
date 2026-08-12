@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase";
 // A página do formulário, vista por quem vai se cadastrar.
 //
 // Fica FORA da área logada de propósito: quem preenche não tem conta.
-// E fica no domínio do Ressoa, não no do Supabase — o domínio de funções
+// E fica no domínio do Ressoar, não no do Supabase — o domínio de funções
 // força text/plain em HTML (proteção contra hospedarem página falsa lá),
 // e endereço próprio passa mais confiança em página de captação.
 

@@ -143,7 +143,7 @@ export default function Formularios() {
     </label>`;
     }).join("\n");
 
-    return `<!-- Formulário ${x.nome} — Ressoa -->
+    return `<!-- Formulário ${x.nome} — Ressoar -->
 <form class="ressoa-form" id="ressoa-${x.slug}" novalidate>
 ${campos}
   <button type="submit">${x.botao}</button>

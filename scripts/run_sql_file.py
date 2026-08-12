@@ -5,6 +5,17 @@ import os
 import json, os, sys, time
 import urllib.request, urllib.error
 
+# O console do Windows abre em cp1252, e a MIGRACAO NAO ESTAVA ERRADA: o
+# script morria ao IMPRIMIR o resultado quando ele trazia acento ou seta
+# (nome de automacao como "Aluno -> Black" tem U+2192). A excecao dava saida
+# 1, e os dois instaladores tratam saida 1 como "falhou em <arquivo>" e
+# abortam a instalacao inteira, no meio do banco. Medido em 12/08/2026.
+for _saida in (sys.stdout, sys.stderr):
+    try:
+        _saida.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:      # Python < 3.7
+        pass
+
 REF = os.environ["SUPABASE_PROJECT_REF"]       # veja .env.example
 API = f"https://api.supabase.com/v1/projects/{REF}/database/query"
 TOKEN = os.environ["SUPABASE_ACCESS_TOKEN"]        # veja .env.example
