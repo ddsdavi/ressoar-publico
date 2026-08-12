@@ -113,13 +113,12 @@ EOF
   npm --prefix app/painel run build --silent
   if [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ] && [[ "$CLOUDFLARE_ACCOUNT_ID" != *xxxx* ]]; then
     export CLOUDFLARE_ACCOUNT_ID
-    # ATENCAO ao nome do projeto. O projeto que ATENDE os dominios de producao
-    # ainda se chama "ressoa": o Cloudflare Pages nao renomeia projeto, e mover
-    # um dominio de um projeto para outro so pelo painel. O projeto "ressoar" ja
-    # existe e ja tem o painel publicado, esperando os dominios. No dia em que
-    # eles forem movidos, troque as duas linhas abaixo para "ressoar" -- e so.
-    npx --yes wrangler pages project create ressoa --production-branch main 2>/dev/null || true
-    npx --yes wrangler pages deploy app/painel/dist --project-name ressoa --branch main --commit-dirty=true
+    # Projeto "ressoar" desde 12/08/2026: os dois dominios foram movidos para
+    # ele (o Pages nao renomeia projeto, entao foi criado um novo e os dominios
+    # mudaram de casa um por vez, sem janela). O projeto antigo "ressoa" ficou
+    # vazio de dominios e pode ser apagado quando der.
+    npx --yes wrangler pages project create ressoar --production-branch main 2>/dev/null || true
+    npx --yes wrangler pages deploy app/painel/dist --project-name ressoar --branch main --commit-dirty=true
     verde "  Painel publicado"
   else
     amarelo "  CLOUDFLARE_ACCOUNT_ID não preenchido — pulei a publicação."

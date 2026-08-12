@@ -157,18 +157,25 @@ propósito: banco e função não trocam de versão no mesmo instante.
 responde `42501: must be owner of table users`. Ele não aparece para ninguém, e
 a função que ele chama já usa o nome novo.
 
-**Duas coisas ficaram pendentes por falta de acesso, não por decisão:**
+**A mudança de casa no Cloudflare foi concluída no mesmo dia** (o Davi liberou o
+navegador): os dois domínios agora moram no projeto **`ressoar`**
+(`ressoar.pages.dev`), movidos um por vez — o novo primeiro, com o antigo
+segurando o tráfego; depois o antigo, com o novo já ativo — de modo que em
+nenhum momento o painel ficou sem endereço. Os instaladores publicam em
+`--project-name ressoar`. O projeto antigo `ressoa` ficou **sem domínios e sem
+função**: pode ser apagado pelo painel quando der (Workers & Pages → ressoa →
+Configurações → Excluir projeto). O allowlist do Auth trocou
+`ressoa-2zl.pages.dev` por `ressoar.pages.dev`.
 
-1. **O projeto do Cloudflare Pages ainda se chama `ressoa`.** O Pages não
-   renomeia projeto: seria preciso criar outro e **mover os domínios pelo
-   painel**. O projeto `ressoar` já existe e já tem o painel publicado
-   (`ressoar.pages.dev`), esperando os domínios. Enquanto eles não se mudam, os
-   dois instaladores continuam apontando para `ressoa` — está escrito lá, e no
-   dia da mudança é trocar essa palavra nas duas linhas. Fazer a mudança agora
-   sem mover os domínios seria pior que não fazer: o instalador publicaria num
-   projeto que ninguém acessa, e o site pararia de receber atualização em
-   silêncio.
-2. **O app OAuth no Google Cloud ainda se chama "Ressoa"** — trocar exige o
+Durante a mudança, uma janela real e assumida: o domínio **novo** (`ressoar.`)
+ficou ~15 minutos "pending" enquanto o certificado saía no projeto novo — o
+painel seguiu acessível o tempo todo pelo domínio antigo, que era o que a
+equipe usava. A compra das 16:04 e a vigília do ManyChat atravessaram a mudança
+sem um evento perdido.
+
+**Ficou UMA pendência, por decisão de risco, não por acesso:**
+
+1. **O app OAuth no Google Cloud ainda se chama "Ressoa"** — trocar exige o
    console do Google e pode reabrir a verificação de marca (escopo sensível de
    Planilhas). Os textos do repositório já dizem a verdade sobre isso.
 
