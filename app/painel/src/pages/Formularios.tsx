@@ -144,35 +144,35 @@ export default function Formularios() {
     }).join("\n");
 
     return `<!-- Formulário ${x.nome} — Ressoar -->
-<form class="ressoa-form" id="ressoa-${x.slug}" novalidate>
+<form class="ressoar-form" id="ressoar-${x.slug}" novalidate>
 ${campos}
   <button type="submit">${x.botao}</button>
-  <p class="ressoa-erro" hidden></p>
+  <p class="ressoar-erro" hidden></p>
 </form>
 
 <style>
   /* Herda a fonte e a cor do seu site — só o botão tem cor própria. */
-  .ressoa-form { display: grid; gap: 14px; max-width: 420px; font: inherit; color: inherit; }
-  .ressoa-form label { display: grid; gap: 6px; font-size: .875em; font-weight: 600; }
-  .ressoa-form input {
+  .ressoar-form { display: grid; gap: 14px; max-width: 420px; font: inherit; color: inherit; }
+  .ressoar-form label { display: grid; gap: 6px; font-size: .875em; font-weight: 600; }
+  .ressoar-form input {
     font: inherit; color: inherit; background: transparent;
     padding: 12px 13px; border: 1px solid rgba(128,128,128,.4); border-radius: 9px;
   }
-  .ressoa-form input:focus { outline: 2px solid ${x.cor}; outline-offset: 1px; border-color: ${x.cor}; }
-  .ressoa-form button {
+  .ressoar-form input:focus { outline: 2px solid ${x.cor}; outline-offset: 1px; border-color: ${x.cor}; }
+  .ressoar-form button {
     font: inherit; font-weight: 700; cursor: pointer; color: #fff;
     background: ${x.cor}; border: 0; border-radius: 9px; padding: 14px;
   }
-  .ressoa-form button[disabled] { opacity: .6; cursor: progress; }
-  .ressoa-erro { color: #d33; font-size: .85em; margin: 0; }
+  .ressoar-form button[disabled] { opacity: .6; cursor: progress; }
+  .ressoar-erro { color: #d33; font-size: .85em; margin: 0; }
 </style>
 
 <script>
 (function () {
-  var f = document.getElementById('ressoa-${x.slug}');
+  var f = document.getElementById('ressoar-${x.slug}');
   f.addEventListener('submit', async function (ev) {
     ev.preventDefault();
-    var b = f.querySelector('button'), erro = f.querySelector('.ressoa-erro');
+    var b = f.querySelector('button'), erro = f.querySelector('.ressoar-erro');
     var rotulo = b.textContent;
     erro.hidden = true; b.disabled = true; b.textContent = 'Enviando…';
     var dados = { form_slug: '${x.slug}', atributos: {} };

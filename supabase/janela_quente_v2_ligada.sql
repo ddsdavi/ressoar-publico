@@ -150,7 +150,7 @@ declare
     'rotulo', 'Já tem a Formação? → sai da sequência');
 begin
   select automacao_id into v_auto from public.automacoes
-  where nome like '[RESSOA] Formação — janela quente%';
+  where nome like '[RESSOAR] Formação — janela quente%';
   if v_auto is null then
     raise exception 'automação da janela quente não encontrada';
   end if;
@@ -187,7 +187,7 @@ begin
         'mensagem', '[Janela quente 3/3] Última da sequência'));
 
   update public.automacoes set
-    nome = '[RESSOA] Formação — janela quente',
+    nome = '[RESSOAR] Formação — janela quente',
     ativa = true,
     nota = 'Jogada nº 1 do eixo de venda, LIGADA em 06/08/2026 a pedido do Davi. '
         || 'Toda compra aprovada entra; sai na porta quem já tem a Formação ou '
@@ -206,7 +206,7 @@ commit;
 -- ------------------------------------------------------------------
 select a.nome, a.ativa,
        (select count(*) from public.automacao_passos p where p.automacao_fk = a.automacao_id) as passos
-from public.automacoes a where a.nome = '[RESSOA] Formação — janela quente';
+from public.automacoes a where a.nome = '[RESSOAR] Formação — janela quente';
 
 select nome, subject from public.mensagens where nome like '[Janela quente%' order by nome;
 

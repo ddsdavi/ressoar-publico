@@ -4,7 +4,7 @@
 -- A planilha "[PATRÍCIA DOMINGOS] Lives semanais - inscritos" era
 -- alimentada pelo flow do n8n (workflow X8vmCXUkeqXQQ1Nk). Agora quem
 -- escreve é a própria Ressoar: passo google_sheets NATIVO na automação
--- "[RESSOA] Lives Semanais — tag no ManyChat" (gatilho tag 85), logo
+-- "[RESSOAR] Lives Semanais — tag no ManyChat" (gatilho tag 85), logo
 -- depois do passo que marca o ManyChat. O flow do n8n fica de reserva,
 -- parado — decisão do Davi em 05/08.
 -- =====================================================================

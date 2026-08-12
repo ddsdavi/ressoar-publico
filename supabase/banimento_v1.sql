@@ -162,9 +162,9 @@ end $$;
 
 grant execute on function public.monitorar_banidos() to service_role;
 
-select cron.schedule('ressoa-banidos-manychat', '*/10 * * * *',
+select cron.schedule('ressoar-banidos-manychat', '*/10 * * * *',
                      'select public.monitorar_banidos()')
-where not exists (select 1 from cron.job where jobname = 'ressoa-banidos-manychat');
+where not exists (select 1 from cron.job where jobname = 'ressoar-banidos-manychat');
 
 commit;
 
@@ -175,6 +175,6 @@ select
       and pronamespace = 'public'::regnamespace
       and position('manychat_banidos' in prosrc) > 0) as trava_no_motor,
   (select count(*) = 1 from cron.job
-    where jobname = 'ressoa-banidos-manychat')        as relogio_agendado,
+    where jobname = 'ressoar-banidos-manychat')        as relogio_agendado,
   (select valor from public.app_config
     where chave = 'manychat_tag_esc')                 as tag_esc;

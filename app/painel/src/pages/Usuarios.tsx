@@ -19,7 +19,7 @@ export default function Usuarios() {
   const [msg, setMsg] = useState("");
 
   async function carregar() {
-    const { data } = await supabase.from("usuarios_ressoa")
+    const { data } = await supabase.from("usuarios_ressoar")
       .select("user_id, email, nome, papel, status, admin_mestre").order("created_at");
     setLista((data as Perfil[]) ?? []);
   }
@@ -33,7 +33,7 @@ export default function Usuarios() {
     if (u.user_id === perfil?.user_id) {
       if (!confirm("Atenção: você está alterando a SUA PRÓPRIA conta e pode perder o acesso. Continuar?")) return;
     }
-    const { error } = await supabase.from("usuarios_ressoa")
+    const { error } = await supabase.from("usuarios_ressoar")
       .update({ [campo]: valor, updated_at: new Date().toISOString() }).eq("user_id", u.user_id);
     if (error) { alert(error.message); return; }
     setMsg(`${u.email}: ${campo} alterado para "${valor}".`);

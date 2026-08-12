@@ -281,7 +281,7 @@ existe como condição, e é o que faz o segmento contar igual ao painel.
 
 ### A janela quente de forma automática
 
-A jogada nº 1 roda sozinha: a automação **"[RESSOA] Formação — janela
+A jogada nº 1 roda sozinha: a automação **"[RESSOAR] Formação — janela
 quente"** está **ligada** desde 06/08/2026. Toda compra aprovada entra;
 saem na porta quem **já tem a Formação** e quem não tem **compra aprovada
 nos últimos 21 dias** (trava contra reprocessamento de eventos antigos —

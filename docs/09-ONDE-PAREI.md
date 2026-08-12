@@ -49,10 +49,10 @@ executa.
 Renomear identificador é risco sem ganho — ninguém de fora vê. Ficaram como
 estavam, e quem for procurar tem de procurar por eles:
 
-- os **7 relógios do pg_cron** (`ressoa-processar-eventos`, `ressoa-fila-envios`…);
-- a tabela **`usuarios_ressoa`**, a classe CSS **`.ressoa-form`** (já embutida em
+- os **7 relógios do pg_cron** (`ressoar-processar-eventos`, `ressoar-fila-envios`…);
+- a tabela **`usuarios_ressoar`**, a classe CSS **`.ressoar-form`** (já embutida em
   site de terceiro) e os tipos de arrasto `application/x-ressoa-*`;
-- os nomes das **8 automações `[RESSOA] …`** — e este tem um motivo forte: as
+- os nomes das **8 automações `[RESSOAR] …`** — e este tem um motivo forte: as
   migrações que as criam têm guarda **por nome**, então renomear a linha viva
   sem editar a guarda faria o instalador criar uma **duplicata ativa**;
 - o projeto do Cloudflare Pages **`ressoa`** e o `ressoa-2zl.pages.dev` (alvo do
@@ -122,6 +122,62 @@ ficaram.
   reclamar num domínio novo, busque por fora (um leitor server-side resolve)
   antes de concluir que quebrou.
 
+### Segunda leva do mesmo dia: o renome profundo ("levar tudo pro ressoar")
+
+O dono pediu o resto — os identificadores internos que a primeira leva tinha
+deixado de propósito. Feito, e **com a operação rodando**: passou uma compra
+aprovada às 16:04:34, processada normalmente, no meio da troca.
+
+| O quê | De | Para |
+|---|---|---|
+| Tabela de usuários | `usuarios_ressoa` | `usuarios_ressoar` |
+| Políticas de RLS | `ressoa_*` (42 delas) | `ressoar_*` |
+| Relógios do pg_cron | `ressoa-*` (8) | `ressoar-*` |
+| Automações no banco | `[RESSOA] …` (8) | `[RESSOAR] …` |
+| Função de exclusão | `excluir_lead_ressoa` | `excluir_lead_ressoar` |
+| Cabeçalho interno | `x-ressoa-segredo` | `x-ressoar-segredo` |
+| Segredos das funções | `RESSOA_EMAIL_*` | `RESSOAR_EMAIL_*` |
+| Formulário publicado | `.ressoa-form`, `.ressoa-erro` | `.ressoar-*` |
+| Preferências no navegador | `ressoa-tema`, `-escala`, `-barra`, `-tour-visto` | `ressoar-*` |
+| Payload dos webhooks | `origem: 'ressoa'` | `origem: 'ressoar'` |
+| Projeto no Supabase | Ressoa | Ressoar |
+| Repositórios no GitHub | `ddsdavi/ressoa`, `ressoa-publico` | `ressoar`, `ressoar-publico` |
+
+**Como a troca da tabela não teve janela.** `papel_atual()` é lida por todas as
+políticas de RLS e cita a tabela pelo nome — e renomear tabela **não** reescreve
+o corpo das funções. Por isso o `alter table` e o `create or replace` das quatro
+funções dependentes acontecem na **mesma transação**
+(`renomear_identificadores_ressoar_v1.sql`), e uma view-ponte `usuarios_ressoa`
+segurou o painel que ainda estava publicado até o build novo subir. A ponte foi
+derrubada logo depois. As funções também aceitam o cabeçalho antigo por ora, de
+propósito: banco e função não trocam de versão no mesmo instante.
+
+**O que a plataforma não deixou renomear, e não é escolha:** o gatilho
+`trg_ressoa_novo_usuario` mora em `auth.users`, tabela do Supabase, e o banco
+responde `42501: must be owner of table users`. Ele não aparece para ninguém, e
+a função que ele chama já usa o nome novo.
+
+**Duas coisas ficaram pendentes por falta de acesso, não por decisão:**
+
+1. **O projeto do Cloudflare Pages ainda se chama `ressoa`.** O Pages não
+   renomeia projeto: seria preciso criar outro e **mover os domínios pelo
+   painel**. O projeto `ressoar` já existe e já tem o painel publicado
+   (`ressoar.pages.dev`), esperando os domínios. Enquanto eles não se mudam, os
+   dois instaladores continuam apontando para `ressoa` — está escrito lá, e no
+   dia da mudança é trocar essa palavra nas duas linhas. Fazer a mudança agora
+   sem mover os domínios seria pior que não fazer: o instalador publicaria num
+   projeto que ninguém acessa, e o site pararia de receber atualização em
+   silêncio.
+2. **O app OAuth no Google Cloud ainda se chama "Ressoa"** — trocar exige o
+   console do Google e pode reabrir a verificação de marca (escopo sensível de
+   Planilhas). Os textos do repositório já dizem a verdade sobre isso.
+
+**Uma mudança que toca o lado de fora, e merece conferência:** o payload que a
+Ressoar posta em webhook (n8n, Boost) agora manda `origem: 'ressoar'`. Se algum
+fluxo do outro lado filtra por `origem = 'ressoa'`, ele para de casar. Não deu
+para conferir os fluxos daqui; os gatilhos com webhook são listas e tags de
+lançamento, hoje sem tráfego, então dá tempo de olhar antes do próximo.
+
 ### A promessa de "rodar de novo é seguro" era falsa — e agora é verdade
 
 O README diz que reaplicar o instalador não estraga nada. Não era o caso, e o
@@ -129,9 +185,9 @@ estrago seria dos grandes:
 
 - **`recuperacao_e_jogadas_v1.sql` não tinha trava nenhuma.** Uma segunda
   execução criava **9 mensagens e 5 automações duplicadas** — e uma delas,
-  `[RESSOA] Pagamento não caiu`, nasce **ativa, com passo de e-mail**.
+  `[RESSOAR] Pagamento não caiu`, nasce **ativa, com passo de e-mail**.
 - **`janela_quente_v1.sql` tinha a trava errada.** Ela procurava
-  `'[RESSOA] Formação — janela quente (revisar e ligar)'`, mas a `v2` **renomeia**
+  `'[RESSOAR] Formação — janela quente (revisar e ligar)'`, mas a `v2` **renomeia**
   a automação ao ligá-la. A trava deixou de reconhecer o que ela mesma criou;
   agora compara com `like '…janela quente%'`.
 - **`scripts/run_sql_file.py` matava a instalação no acento.** O console do
@@ -218,7 +274,7 @@ dois sistemas aplicavam a MESMA tag, ninguém via.
 semana, conferidos assinante a assinante, só com a 08_17), o Davi desativou à
 mão os nós de tag nos dois workflows, e a varredura final pegou os 2 últimos
 que compraram no intervalo. **A planilha de compradores também foi assumida
-pela Ressoar** (`desafio_planilha_v1.sql`): automação "[RESSOA] Desafio —
+pela Ressoar** (`desafio_planilha_v1.sql`): automação "[RESSOAR] Desafio —
 planilha de compradores" (gatilho `compra_realizada` filtrado por "Desafio
 Casa"), escrevendo na aba DA TURMA — o nome da aba sai de `nome_da_turma()`
 (o n8n apontava a aba à mão toda segunda, o mesmo ritual que quebrou a tag),
@@ -231,7 +287,7 @@ aba errada (CASA_H_2026_08_10).
 **O banimento (`banimento_v1.sql` + função `manychat` + tela):** números que
 NUNCA recebem tag no ManyChat, por ordem do Davi. Três camadas: trava em
 `manychat_aplicar` (motor), trava na Edge Function (tela e External Request),
-e monitor `ressoa-banidos-manychat` (cron, 10 em 10 min) que procura cada
+e monitor `ressoar-banidos-manychat` (cron, 10 em 10 min) que procura cada
 banido lá e aplica a escada — exclusão a API **não tem** (404, medido; fica
 apontada na tela para fazer à mão) → descadastro melhor-esforço
 (`updateSubscriber`, só SMS/e-mail) → **tag ESC WHATSAPP** (id em
@@ -552,7 +608,7 @@ explicam cada coluna e cada jogada (textos compartilhados em
 `app/painel/src/lib/venda.ts`), o tour ganhou o passo "Quem está pronto
 pra comprar" (navega para `/relatorios?aba=prontos` — a página passou a
 aceitar `?aba=`), e a jogada nº 1 virou automação de verdade:
-**"[RESSOA] Formação — janela quente (revisar e ligar)"**
+**"[RESSOAR] Formação — janela quente (revisar e ligar)"**
 (`janela_quente_v1.sql`), DESLIGADA, gatilho `compra_realizada`
 (qualquer produto), passo `condicao` "já comprou a Formação? → encerra"
 na porta E antes de cada um dos 3 e-mails (D+1/D+4/D+8) — quem compra no
@@ -643,9 +699,9 @@ ruído, e ruído treina a pessoa a ignorar alerta). Tela: Envios.
 **4. Recuperação de pagamento** (`recuperacao_e_jogadas_v1.sql`). A
 Hotmart vinha avisando e ninguém escutava: **135 boletos/PIX gerados, 27
 carrinhos abandonados, 13 pagamentos atrasados** em `eventos_sistema` sem
-automação pendurada. Agora: **[RESSOA] Pagamento não caiu** (gatilho
+automação pendurada. Agora: **[RESSOAR] Pagamento não caiu** (gatilho
 ARRAY — `boleto_gerado` + `pagamento_atrasado` —, e-mails em 4h e 24h,
-saindo na hora em que a compra é aprovada) e **[RESSOA] Carrinho
+saindo na hora em que a compra é aprovada) e **[RESSOAR] Carrinho
 abandonado** (2h). Os textos usam `{{evento.produto}}` (o `personalizar`
 de 3 argumentos lê o contexto do evento) numa frase que **funciona
 vazia**: "Você começou a compra {{evento.produto}} e o pagamento ainda
@@ -713,7 +769,7 @@ Duas coisas que quem religar precisa saber:
    a trava global segura todas; **no dia em que o envio for despausado,
    elas voltam a mandar sozinhas.** Conferir uma a uma antes.
 
-A única `[RESSOA]` que ficou ativa é a **Lives Semanais — tag no
+A única `[RESSOAR]` que ficou ativa é a **Lives Semanais — tag no
 ManyChat**: ela não manda e-mail (marca ManyChat e escreve na planilha).
 
 ### O espelho público voltou a ficar em dia (06/08/2026)
@@ -763,7 +819,7 @@ teto (`aquecimento_v2_sem_teto.sql`, "a operação não trabalha com teto de
 e-mail por dia"). O Davi confirmou: **sem teto**.
 
 Consequência aplicada em `sem_teto_v1_1.sql`: o relógio
-`ressoa-rampa-aquecimento` foi **desagendado** — com o teto em 0,
+`ressoar-rampa-aquecimento` foi **desagendado** — com o teto em 0,
 `subir_rampa()` devolvia "rampa concluída" sem escrever nada, e relógio
 que acorda todo dia para não fazer nada engana quem for ler o sistema
 depois. A função ficou (com `comment on` explicando), caso um teto volte
@@ -889,7 +945,7 @@ que importa: a posição de origem viaja no `dataTransfer` do próprio evento,
 não no estado do React — entre o "peguei" e o "soltei" pode não haver
 re-render, e ler o estado ali derrubava a solta. Gatilhos e passos são
 zonas separadas, cada arrasto viaja com um tipo próprio
-(`application/x-ressoa-gatilho` / `-passo`) e o navegador recusa a solta na
+(`application/x-ressoar-gatilho` / `-passo`) e o navegador recusa a solta na
 zona errada — testado: gatilho não cai no meio dos passos.
 
 ---
@@ -978,7 +1034,7 @@ O que já existe aqui (criado e testado em 05/08/2026):
   `…supabase.co/functions/v1/formulario?f=slug` **não** serve como página: o
   domínio de funções devolve HTML como `text/plain`, e o visitante veria o
   código cru. Como destino de POST, é o certo.)
-- **Automação "[RESSOA] Lives Semanais — tag no ManyChat"** — gatilho: tag 85
+- **Automação "[RESSOAR] Lives Semanais — tag no ManyChat"** — gatilho: tag 85
   adicionada; passo único: marcar `LIVES SEMANAIS - INSCRITOS` no ManyChat,
   criando o assinante se não existir. Nasceu **desativada**, de propósito.
 
@@ -1007,7 +1063,7 @@ ligado e a decisão do Davi de manter a planilha como segurança):
    agora é um botão só; o app OAuth ("Ressoar", projeto Google Cloud
    `ressoa-504702`, consentimento Em produção) mora nos secrets da função
    (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`), não na tela. O passo
-   `google_sheets` nativo foi plantado na automação "[RESSOA] Lives
+   `google_sheets` nativo foi plantado na automação "[RESSOAR] Lives
    Semanais" (ordem 2, depois do ManyChat) apontando para a planilha real
    "[PATRÍCIA DOMINGOS] Lives semanais - inscritos" (`1l3wE_XQ…`, aba
    Página1, colunas ID do Contato | WhatsApp | Nome | E-mail; "ID do
@@ -1023,7 +1079,7 @@ ligado e a decisão do Davi de manter a planilha como segurança):
    porta do motor aceita os DOIS jogos de chave do projeto (env
    `sb_secret_…` E `segredos.service_key` JWT) — só com o env, todo passo
    de planilha levava 403 silencioso.
-3. ~~**Ativar a automação "[RESSOA] Lives Semanais — tag no ManyChat"**~~
+3. ~~**Ativar a automação "[RESSOAR] Lives Semanais — tag no ManyChat"**~~
    **ATIVADA E PROVADA em 06/08, 02h.** O teste foi o completo, sem simulação:
    tag 85 aplicada no lead do Davi → evento na fila → `processar_eventos_sistema`
    às 02:05:00 → `executar_automacoes` chamou o passo → ManyChat marcado às

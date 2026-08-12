@@ -29,11 +29,11 @@ declare
   v_goal jsonb;
 begin
   -- `like`, e nao `=`: a v2 (janela_quente_v2_ligada) RENOMEIA esta automação
-  -- para '[RESSOA] Formação — janela quente' ao ligá-la. Com igualdade exata, a
+  -- para '[RESSOAR] Formação — janela quente' ao ligá-la. Com igualdade exata, a
   -- trava parava de reconhecer o que ela mesma criou e o instalador passava a
   -- criar uma segunda automação a cada execução. Medido em 12/08/2026.
   if exists (select 1 from public.automacoes
-             where nome like '[RESSOA] Formação — janela quente%') then
+             where nome like '[RESSOAR] Formação — janela quente%') then
     raise notice 'automação da janela quente já existe; nada a fazer';
     return;
   end if;
@@ -88,7 +88,7 @@ begin
 
   insert into public.automacoes (nome, ativa, gatilho, nota)
   values (
-    '[RESSOA] Formação — janela quente (revisar e ligar)',
+    '[RESSOAR] Formação — janela quente (revisar e ligar)',
     false,
     '{"tipo": "compra_realizada"}'::jsonb,
     'Jogada nº 1 do eixo de venda. Toda compra aprovada entra; quem já tem a '
@@ -129,6 +129,6 @@ commit;
 select a.nome, a.ativa, a.gatilho,
        (select count(*) from public.automacao_passos p where p.automacao_fk = a.automacao_id) as passos
 from public.automacoes a
-where a.nome = '[RESSOA] Formação — janela quente (revisar e ligar)';
+where a.nome = '[RESSOAR] Formação — janela quente (revisar e ligar)';
 
 select nome, subject from public.mensagens where nome like '[RASCUNHO] Janela quente%' order by nome;

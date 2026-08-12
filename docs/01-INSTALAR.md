@@ -64,7 +64,7 @@ Ele cria o banco inteiro, publica as 5 funções e sobe o painel. No fim, imprim
 3. No Supabase → **SQL Editor**, rode:
 
 ```sql
-update public.usuarios_ressoa
+update public.usuarios_ressoar
 set papel = 'admin', status = 'aprovado'
 where email = 'SEU@EMAIL.COM';
 ```
@@ -101,7 +101,7 @@ webhook. O mais simples é um fluxo no n8n:
    enviando para `{{ $json.body.para }}` com assunto `{{ $json.body.assunto }}` e corpo HTML
    `{{ $json.body.html }}`
 
-Ponha a URL e o segredo no `.env` (`RESSOA_EMAIL_WEBHOOK`, `RESSOA_EMAIL_SEGREDO`) e rode
+Ponha a URL e o segredo no `.env` (`RESSOAR_EMAIL_WEBHOOK`, `RESSOAR_EMAIL_SEGREDO`) e rode
 `./instalar.sh --so-painel` para reenviar os segredos.
 
 ## Passo 8 — Trazer sua base

@@ -645,7 +645,7 @@ export default function Leads() {
     const leadExcluido = sel;
     setExcluindoLead(true);
     setErroExclusao("");
-    const { error } = await supabase.rpc("excluir_lead_ressoa", {
+    const { error } = await supabase.rpc("excluir_lead_ressoar", {
       p_lead_id: leadExcluido.lead_id,
     });
     setExcluindoLead(false);

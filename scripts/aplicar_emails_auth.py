@@ -97,7 +97,7 @@ def patch(corpo):
     req = urllib.request.Request(API, data=json.dumps(corpo).encode("utf-8"), method="PATCH", headers={
         "Authorization": "Bearer " + TOKEN,
         "Content-Type": "application/json",
-        "User-Agent": "ressoa-setup/1.0",
+        "User-Agent": "ressoar-setup/1.0",
     })
     try:
         with urllib.request.urlopen(req, timeout=60) as r:

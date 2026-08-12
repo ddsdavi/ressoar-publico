@@ -353,7 +353,7 @@ begin
           perform net.http_post(
             url := v_passo.config->>'url',
             body := jsonb_build_object(
-              'origem', 'ressoa', 'passo', v_passo.tipo,
+              'origem', 'ressoar', 'passo', v_passo.tipo,
               'automacao', v_exec.automacao_fk,
               'evento', v_exec.contexto,
               'contato', public.payload_contato(v_exec.lead_fk)),

@@ -9,7 +9,7 @@
 begin;
 
 -- ------------------ perfis ------------------
-create table if not exists public.usuarios_ressoa (
+create table if not exists public.usuarios_ressoar (
   user_id    uuid primary key references auth.users(id) on delete cascade,
   email      citext not null unique,
   nome       text,
@@ -18,12 +18,12 @@ create table if not exists public.usuarios_ressoa (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-alter table public.usuarios_ressoa enable row level security;
+alter table public.usuarios_ressoar enable row level security;
 
 -- papel do usuário logado (null se não aprovado) — security definer p/ não recursar RLS
 create or replace function public.papel_atual() returns text
 language sql stable security definer set search_path = public as $$
-  select papel from public.usuarios_ressoa
+  select papel from public.usuarios_ressoar
   where user_id = auth.uid() and status = 'aprovado'
 $$;
 
@@ -35,7 +35,7 @@ declare
     ('voce@exemplo.com','socio@exemplo.com',
      'dona@exemplo.com','suporte@exemplo.com');
 begin
-  insert into public.usuarios_ressoa (user_id, email, nome, papel, status)
+  insert into public.usuarios_ressoar (user_id, email, nome, papel, status)
   values (new.id, lower(new.email),
           coalesce(new.raw_user_meta_data->>'nome',''),
           case when v_admin then 'admin' else 'assistente' end,
@@ -47,17 +47,17 @@ begin
   return new;
 end $$;
 
-drop trigger if exists trg_ressoa_novo_usuario on auth.users;
-create trigger trg_ressoa_novo_usuario
+drop trigger if exists trg_ressoar_novo_usuario on auth.users;
+create trigger trg_ressoar_novo_usuario
   after insert on auth.users
   for each row execute function public.fn_novo_usuario_auth();
 
 -- políticas do próprio perfil
-drop policy if exists ressoa_perfil_proprio on public.usuarios_ressoa;
-create policy ressoa_perfil_proprio on public.usuarios_ressoa
+drop policy if exists ressoar_perfil_proprio on public.usuarios_ressoar;
+create policy ressoar_perfil_proprio on public.usuarios_ressoar
   for select to authenticated using (user_id = auth.uid());
-drop policy if exists ressoa_perfil_admin on public.usuarios_ressoa;
-create policy ressoa_perfil_admin on public.usuarios_ressoa
+drop policy if exists ressoar_perfil_admin on public.usuarios_ressoar;
+create policy ressoar_perfil_admin on public.usuarios_ressoar
   for all to authenticated
   using (public.papel_atual() = 'admin') with check (public.papel_atual() = 'admin');
 
@@ -88,22 +88,22 @@ declare
     'ac_contact_tags','ac_contact_lists','ac_automations','ac_campaigns','ac_messages'];
 begin
   foreach t in array operacionais loop
-    execute format('drop policy if exists ressoa_opera on public.%I', t);
+    execute format('drop policy if exists ressoar_opera on public.%I', t);
     execute format(
-      'create policy ressoa_opera on public.%I for all to authenticated
+      'create policy ressoar_opera on public.%I for all to authenticated
        using (public.papel_atual() in (''admin'',''terapeuta''))
        with check (public.papel_atual() in (''admin'',''terapeuta''))', t);
   end loop;
   foreach t in array leitura_assistente loop
-    execute format('drop policy if exists ressoa_le on public.%I', t);
+    execute format('drop policy if exists ressoar_le on public.%I', t);
     execute format(
-      'create policy ressoa_le on public.%I for select to authenticated
+      'create policy ressoar_le on public.%I for select to authenticated
        using (public.papel_atual() = ''assistente'')', t);
   end loop;
   foreach t in array so_admin loop
-    execute format('drop policy if exists ressoa_admin on public.%I', t);
+    execute format('drop policy if exists ressoar_admin on public.%I', t);
     execute format(
-      'create policy ressoa_admin on public.%I for all to authenticated
+      'create policy ressoar_admin on public.%I for all to authenticated
        using (public.papel_atual() = ''admin'')
        with check (public.papel_atual() = ''admin'')', t);
   end loop;

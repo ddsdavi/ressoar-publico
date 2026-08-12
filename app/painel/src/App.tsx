@@ -93,7 +93,7 @@ function Layout() {
   const [tourAberto, setTourAberto] = useState(false);
   // A barra da seção encolhe para dar tela ao conteúdo. A escolha fica salva:
   // quem encolheu uma vez não quer encolher de novo a cada visita.
-  const [barraFechada, setBarraFechada] = useState(() => localStorage.getItem("ressoa-barra") === "fechada");
+  const [barraFechada, setBarraFechada] = useState(() => localStorage.getItem("ressoar-barra") === "fechada");
 
   useEffect(() => {
     if (!tourJaVisto()) {
@@ -103,7 +103,7 @@ function Layout() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("ressoa-barra", barraFechada ? "fechada" : "aberta");
+    localStorage.setItem("ressoar-barra", barraFechada ? "fechada" : "aberta");
   }, [barraFechada]);
 
 

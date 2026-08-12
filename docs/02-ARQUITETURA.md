@@ -60,7 +60,7 @@ alguém apaga uma tag.
 `automacao_execucoes` · `webhooks_saida` · `app_config`
 
 ### 4. Acesso
-`usuarios_ressoa` (papel + situação) · `admins_permanentes` · `codigos_seguranca` ·
+`usuarios_ressoar` (papel + situação) · `admins_permanentes` · `codigos_seguranca` ·
 `trocas_email` · `log_seguranca`
 
 ### 5. Arquivo

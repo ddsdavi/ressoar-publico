@@ -6,7 +6,7 @@
 //   com a AWS. Trocar de provedor é só mudar `provedor_email` nas Configurações.
 //
 //   As credenciais da AWS ficam como secrets DESTA função, nunca no banco.
-//   Autenticação: header `x-ressoa-segredo`, conferido contra SES_SEGREDO.
+//   Autenticação: header `x-ressoar-segredo`, conferido contra SES_SEGREDO.
 const REGIAO = Deno.env.get("AWS_REGIAO") ?? "us-east-1";
 const CHAVE_ID = Deno.env.get("AWS_ACCESS_KEY_ID") ?? "";
 const CHAVE_SECRETA = Deno.env.get("AWS_SECRET_ACCESS_KEY") ?? "";
@@ -105,7 +105,13 @@ async function assinar(corpo: string): Promise<Record<string, string>> {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("ok");
-  if (!SEGREDO || req.headers.get("x-ressoa-segredo") !== SEGREDO) {
+  // Os dois nomes, de propósito: o motor passou a mandar `x-ressoar-segredo`
+  // no renome de 12/08/2026, e função e banco não trocam de versão no mesmo
+  // instante. O nome antigo pode sair daqui depois que o banco estiver na
+  // versão nova — hoje ele é a rede que evita 401 no meio da virada.
+  const segredoRecebido = req.headers.get("x-ressoar-segredo")
+    ?? req.headers.get("x-ressoa-segredo");
+  if (!SEGREDO || segredoRecebido !== SEGREDO) {
     return new Response(JSON.stringify({ erro: "nao autorizado" }), { status: 401 });
   }
   if (!CHAVE_ID || !CHAVE_SECRETA) {

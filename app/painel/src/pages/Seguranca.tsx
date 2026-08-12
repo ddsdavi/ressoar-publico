@@ -30,7 +30,7 @@ export default function Seguranca() {
     (async () => {
       const [l, u] = await Promise.all([
         supabase.from("log_seguranca").select("*").order("created_at", { ascending: false }).limit(200),
-        supabase.from("usuarios_ressoa").select("user_id, email"),
+        supabase.from("usuarios_ressoar").select("user_id, email"),
       ]);
       setLogs((l.data as Log[]) ?? []);
       setEmails(Object.fromEntries((u.data ?? []).map((x) => [x.user_id, x.email])));

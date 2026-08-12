@@ -5,8 +5,8 @@
 begin;
 
 -- permite ao usuário atualizar a própria linha…
-drop policy if exists ressoa_perfil_proprio_update on public.usuarios_ressoa;
-create policy ressoa_perfil_proprio_update on public.usuarios_ressoa
+drop policy if exists ressoar_perfil_proprio_update on public.usuarios_ressoar;
+create policy ressoar_perfil_proprio_update on public.usuarios_ressoar
   for update to authenticated
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
@@ -52,7 +52,7 @@ begin
 
   if (new.papel is distinct from 'admin' or new.status is distinct from 'aprovado')
      and old.papel = 'admin' and old.status = 'aprovado'
-     and (select count(*) from public.usuarios_ressoa
+     and (select count(*) from public.usuarios_ressoar
           where papel = 'admin' and status = 'aprovado' and user_id <> old.user_id) = 0 then
     raise exception 'Este é o último admin ativo — promova outra pessoa antes.';
   end if;

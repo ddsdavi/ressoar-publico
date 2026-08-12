@@ -277,13 +277,13 @@ end $$;
 -- ------------------------------------------------------------------
 -- 4. relógios
 -- ------------------------------------------------------------------
-select cron.schedule('ressoa-freio-entregabilidade', '7 * * * *',
+select cron.schedule('ressoar-freio-entregabilidade', '7 * * * *',
                      'select public.freio_entregabilidade()')
-where not exists (select 1 from cron.job where jobname = 'ressoa-freio-entregabilidade');
+where not exists (select 1 from cron.job where jobname = 'ressoar-freio-entregabilidade');
 
-select cron.schedule('ressoa-rampa-aquecimento', '51 6 * * *',
+select cron.schedule('ressoar-rampa-aquecimento', '51 6 * * *',
                      'select public.subir_rampa()')
-where not exists (select 1 from cron.job where jobname = 'ressoa-rampa-aquecimento');
+where not exists (select 1 from cron.job where jobname = 'ressoar-rampa-aquecimento');
 
 commit;
 

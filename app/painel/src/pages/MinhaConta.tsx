@@ -48,7 +48,7 @@ export default function MinhaConta() {
 
   async function salvarNome() {
     setOcupado(true); setMsg(null);
-    const { error } = await supabase.from("usuarios_ressoa")
+    const { error } = await supabase.from("usuarios_ressoar")
       .update({ nome: nome.trim(), updated_at: new Date().toISOString() })
       .eq("user_id", perfil!.user_id);
     if (error) setMsg({ tipo: "erro", texto: error.message });
@@ -151,7 +151,7 @@ export default function MinhaConta() {
       if (errUp) throw errUp;
       const { data } = supabase.storage.from("avatares").getPublicUrl(caminho);
       const url = `${data.publicUrl}?v=${Date.now()}`;
-      const { error } = await supabase.from("usuarios_ressoa")
+      const { error } = await supabase.from("usuarios_ressoar")
         .update({ avatar_url: url, updated_at: new Date().toISOString() })
         .eq("user_id", perfil.user_id);
       if (error) throw error;
@@ -168,7 +168,7 @@ export default function MinhaConta() {
     if (!perfil || !confirm("Remover sua foto de perfil?")) return;
     setOcupado(true);
     await supabase.storage.from("avatares").remove([`${perfil.user_id}/foto.webp`]);
-    await supabase.from("usuarios_ressoa").update({ avatar_url: null }).eq("user_id", perfil.user_id);
+    await supabase.from("usuarios_ressoar").update({ avatar_url: null }).eq("user_id", perfil.user_id);
     await recarregar();
     setOcupado(false);
   }

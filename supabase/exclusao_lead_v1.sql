@@ -2,7 +2,7 @@
 -- A operacao e atomica e restrita a administradores aprovados.
 begin;
 
-create or replace function public.excluir_lead_ressoa(p_lead_id uuid)
+create or replace function public.excluir_lead_ressoar(p_lead_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -65,10 +65,10 @@ begin
 end;
 $$;
 
-comment on function public.excluir_lead_ressoa(uuid) is
+comment on function public.excluir_lead_ressoar(uuid) is
   'Exclui atomicamente um lead da Ressoar e seus vinculos internos. Somente admin.';
 
-revoke all on function public.excluir_lead_ressoa(uuid) from public, anon;
-grant execute on function public.excluir_lead_ressoa(uuid) to authenticated;
+revoke all on function public.excluir_lead_ressoar(uuid) from public, anon;
+grant execute on function public.excluir_lead_ressoar(uuid) to authenticated;
 
 commit;

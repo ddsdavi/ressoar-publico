@@ -81,9 +81,9 @@ if (-not $SoBanco) {
   Passo "5/6 Publicando as Edge Functions"
   New-Item -ItemType Directory -Force "app/supabase/functions" | Out-Null
   Copy-Item "app/functions/*" "app/supabase/functions/" -Recurse -Force
-  if ($env:RESSOA_EMAIL_WEBHOOK -and $env:RESSOA_EMAIL_SEGREDO) {
+  if ($env:RESSOAR_EMAIL_WEBHOOK -and $env:RESSOAR_EMAIL_SEGREDO) {
     Push-Location app
-    npx --yes supabase secrets set "RESSOA_EMAIL_WEBHOOK=$env:RESSOA_EMAIL_WEBHOOK" "RESSOA_EMAIL_SEGREDO=$env:RESSOA_EMAIL_SEGREDO" --project-ref $env:SUPABASE_PROJECT_REF | Out-Null
+    npx --yes supabase secrets set "RESSOAR_EMAIL_WEBHOOK=$env:RESSOAR_EMAIL_WEBHOOK" "RESSOAR_EMAIL_SEGREDO=$env:RESSOAR_EMAIL_SEGREDO" --project-ref $env:SUPABASE_PROJECT_REF | Out-Null
     Pop-Location
     Ok "Segredos do canal de e-mail configurados"
   } else {
@@ -118,6 +118,11 @@ if (-not $SoBanco) {
   Passo "6/6 Publicando o painel"
   npm --prefix app/painel run build --silent
   if ($env:CLOUDFLARE_ACCOUNT_ID -and $env:CLOUDFLARE_ACCOUNT_ID -notlike "*xxxx*") {
+    # ATENCAO ao nome do projeto. O projeto que ATENDE os dominios de producao
+    # ainda se chama "ressoa": o Cloudflare Pages nao renomeia projeto, e mover
+    # um dominio de um projeto para outro so pelo painel. O projeto "ressoar" ja
+    # existe e ja tem o painel publicado, esperando os dominios. No dia em que
+    # eles forem movidos, troque as duas linhas abaixo para "ressoar" -- e so.
     npx --yes wrangler pages project create ressoa --production-branch main 2>$null
     npx --yes wrangler pages deploy app/painel/dist --project-name ressoa --branch main --commit-dirty=true
     Ok "Painel publicado"
@@ -139,7 +144,7 @@ O QUE FAZER AGORA
    Abra o painel, clique em "Criar conta" e cadastre-se.
    Depois libere a conta no SQL Editor do Supabase:
 
-     update public.usuarios_ressoa
+     update public.usuarios_ressoar
      set papel = 'admin', status = 'aprovado'
      where email = 'SEU@EMAIL.COM';
 

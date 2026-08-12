@@ -22,7 +22,7 @@ import {
 // pedido, e cada passo aparece — para dar para ver ONDE parou quando
 // parar, em vez de só descobrir que não funcionou.
 
-type NaRessoa = {
+type NaRessoar = {
   lead_id: string; nome: string | null; whatsapp: string | null;
   manychat_id: string | null; tags: string[]; listas: string[];
 };
@@ -53,7 +53,7 @@ export default function ManyChat() {
 
   // quem é essa pessoa, dos dois lados
   const [assinante, setAssinante] = useState<Assinante | null>(null);
-  const [naRessoa, setNaRessoa] = useState<NaRessoa | null>(null);
+  const [naRessoar, setNaRessoarr] = useState<NaRessoar | null>(null);
   const [procurou, setProcurou] = useState(false);
   const [consultaManyChatOk, setConsultaManyChatOk] = useState(false);
 
@@ -191,10 +191,10 @@ export default function ManyChat() {
       supabase.rpc("lead_por_whatsapp", { p_fone: numero }),
     ]);
     setAssinante(mc.existe ? mc.assinante : null);
-    setNaRessoa((rs as NaRessoa) ?? null);
+    setNaRessoarr((rs as NaRessoar) ?? null);
     setConsultaManyChatOk(mc.ok === true);
-    if (!mc.existe && (rs as NaRessoa | null)?.nome && !nome.trim()) {
-      setNome((rs as NaRessoa).nome ?? "");
+    if (!mc.existe && (rs as NaRessoar | null)?.nome && !nome.trim()) {
+      setNome((rs as NaRessoar).nome ?? "");
     }
     setProcurou(true);
     return mc;
@@ -263,7 +263,7 @@ export default function ManyChat() {
     // 1. quem é aqui
     const mc = await procurar();
     const { data: rs } = await supabase.rpc("lead_por_whatsapp", { p_fone: fone });
-    anota(rs ? `Na Ressoar: ${(rs as NaRessoa).nome ?? "(sem nome)"}`
+    anota(rs ? `Na Ressoar: ${(rs as NaRessoar).nome ?? "(sem nome)"}`
              : "Na Ressoar: não existe ainda", rs ? "ok" : "info");
 
     if (!mc || mc.erro) {
@@ -408,7 +408,7 @@ export default function ManyChat() {
                 setProcurou(false);
                 setConsultaManyChatOk(false);
                 setAssinante(null);
-                setNaRessoa(null);
+                setNaRessoarr(null);
                 setMensagemContato(null);
               }}
               onKeyDown={(e) => e.key === "Enter" && buscarUsuario()} />
@@ -435,10 +435,10 @@ export default function ManyChat() {
                         gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
             <div>
               <b>Na Ressoar</b>
-              {naRessoa ? (
+              {naRessoar ? (
                 <div style={{ marginTop: 6 }}>
-                  <div>{naRessoa.nome || <i>sem nome</i>}</div>
-                  <div className="sub" style={{ marginTop: 2 }}>{naRessoa.whatsapp}</div>
+                  <div>{naRessoar.nome || <i>sem nome</i>}</div>
+                  <div className="sub" style={{ marginTop: 2 }}>{naRessoar.whatsapp}</div>
                 </div>
               ) : <div className="sub" style={{ marginTop: 6 }}>não existe aqui ainda</div>}
             </div>

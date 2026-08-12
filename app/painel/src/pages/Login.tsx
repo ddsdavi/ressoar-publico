@@ -5,7 +5,7 @@ import { MARCA_NOME, MARCA_RODAPE } from "../lib/marca";
 
 type Modo = "entrar" | "cadastrar" | "esqueci" | "codigo";
 
-const MarcaRessoa = ({ tamanho = 46 }: { tamanho?: number }) => (
+const MarcaRessoar = ({ tamanho = 46 }: { tamanho?: number }) => (
   <svg width={tamanho} height={tamanho} viewBox="0 0 32 32" fill="none" aria-hidden>
     <circle cx="16" cy="16" r="4" fill="currentColor" />
     <path d="M16 6a10 10 0 0 1 0 20" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" opacity=".85" />
@@ -102,7 +102,7 @@ export default function Login() {
       <div className="login-quadro">
         <aside className="login-marca">
           <div className="topo">
-            <MarcaRessoa tamanho={40} />
+            <MarcaRessoar tamanho={40} />
             <div>
               <b>Ressoar</b>
               {MARCA_NOME && <span>{MARCA_NOME}</span>}
@@ -123,7 +123,7 @@ export default function Login() {
 
         <form className="cartao-login" onSubmit={enviar}>
           <div className="marca-mobile">
-            <MarcaRessoa tamanho={34} />
+            <MarcaRessoar tamanho={34} />
             <div><b>Ressoar</b>{MARCA_NOME && <span>{MARCA_NOME}</span>}</div>
           </div>
 

@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     const u = await rU.json();
     if (!u?.id) return false;
     const rP = await fetch(
-      `${base}/rest/v1/usuarios_ressoa?user_id=eq.${encodeURIComponent(u.id)}&select=papel,status&limit=1`,
+      `${base}/rest/v1/usuarios_ressoar?user_id=eq.${encodeURIComponent(u.id)}&select=papel,status&limit=1`,
       { headers: cab });
     const p = await rP.json();
     return p?.[0]?.papel === "admin" && p?.[0]?.status === "aprovado";

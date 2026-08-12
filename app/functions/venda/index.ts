@@ -30,7 +30,7 @@ const SEGREDO = Deno.env.get("VENDA_SEGREDO") ?? "";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "content-type, x-hotmart-hottok, x-ressoa-segredo",
+  "Access-Control-Allow-Headers": "content-type, x-hotmart-hottok, x-ressoar-segredo",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -158,6 +158,9 @@ Deno.serve(async (req) => {
   const corpoInicial = await req.clone().json().catch(() => ({} as Record<string, any>));
   const tokenRecebido = req.headers.get("x-hotmart-hottok")
     ?? corpoInicial?.hottok
+    ?? req.headers.get("x-ressoar-segredo")
+    // nome antigo do cabeçalho, mantido durante a virada de 12/08/2026:
+    // função e banco não trocam de versão no mesmo instante
     ?? req.headers.get("x-ressoa-segredo")
     ?? null;
 

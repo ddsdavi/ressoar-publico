@@ -21,8 +21,8 @@
 -- =====================================================================
 begin;
 
-select cron.unschedule('ressoa-rampa-aquecimento')
-where exists (select 1 from cron.job where jobname = 'ressoa-rampa-aquecimento');
+select cron.unschedule('ressoar-rampa-aquecimento')
+where exists (select 1 from cron.job where jobname = 'ressoar-rampa-aquecimento');
 
 -- `comment on` só aceita um literal, nunca concatenação
 comment on function public.subir_rampa() is
@@ -35,5 +35,5 @@ select jsonb_build_object(
   'pausado', public.cfg('envio_pausado'),
   'relogios_de_envio', (select jsonb_agg(jobname) from cron.job
                         where jobname like 'ressoa-%'
-                          and jobname in ('ressoa-fila-envios', 'ressoa-freio-entregabilidade',
-                                          'ressoa-rampa-aquecimento'))) as estado;
+                          and jobname in ('ressoar-fila-envios', 'ressoar-freio-entregabilidade',
+                                          'ressoar-rampa-aquecimento'))) as estado;

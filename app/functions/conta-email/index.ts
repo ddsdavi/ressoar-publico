@@ -11,8 +11,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const URL_SB = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
-const WEBHOOK = Deno.env.get("RESSOA_EMAIL_WEBHOOK") ?? "";
-const SEGREDO = Deno.env.get("RESSOA_EMAIL_SEGREDO") ?? "";
+const WEBHOOK = Deno.env.get("RESSOAR_EMAIL_WEBHOOK") ?? "";
+const SEGREDO = Deno.env.get("RESSOAR_EMAIL_SEGREDO") ?? "";
 
 const admin = createClient(URL_SB, SERVICE);
 
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
     const resposta = { ok: true, mensagem: "Se este e-mail tiver conta no Ressoar, o código chega em instantes." };
     if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return responde(resposta);
 
-    const { data: perfil } = await admin.from("usuarios_ressoa")
+    const { data: perfil } = await admin.from("usuarios_ressoar")
       .select("user_id, nome").eq("email", email).maybeSingle();
     if (!perfil) return responde(resposta);   // nunca revela se existe
 
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     const senha = String(corpoBruto.senha ?? "");
     if (senha.length < 8) return responde({ erro: "A senha precisa ter pelo menos 8 caracteres." }, 400);
 
-    const { data: perfil } = await admin.from("usuarios_ressoa")
+    const { data: perfil } = await admin.from("usuarios_ressoar")
       .select("user_id").eq("email", email).maybeSingle();
     if (!perfil) return responde({ erro: "Código inválido ou expirado." }, 400);
 
@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
     }
 
     // e-mail novo não pode já estar em uso
-    const { data: existente } = await admin.from("usuarios_ressoa")
+    const { data: existente } = await admin.from("usuarios_ressoar")
       .select("user_id").eq("email", emailNovo).maybeSingle();
     if (existente) return responde({ erro: "Já existe uma conta com esse e-mail." }, 400);
 
@@ -276,13 +276,13 @@ Deno.serve(async (req) => {
   // Etapa 1: senha + palavra EXCLUIR -> manda código para o e-mail cadastrado.
   // Etapa 2: código -> apaga de verdade. Admins são avisados por e-mail.
   async function checarSePodeExcluir() {
-    const { data: perfil } = await admin.from("usuarios_ressoa")
+    const { data: perfil } = await admin.from("usuarios_ressoar")
       .select("papel, status, admin_mestre").eq("user_id", user.id).maybeSingle();
     if (perfil?.admin_mestre) {
       return "Esta é uma conta de administração permanente — não pode ser excluída.";
     }
     if (perfil?.papel === "admin" && perfil?.status === "aprovado") {
-      const { count } = await admin.from("usuarios_ressoa")
+      const { count } = await admin.from("usuarios_ressoar")
         .select("*", { count: "exact", head: true })
         .eq("papel", "admin").eq("status", "aprovado").neq("user_id", user.id);
       if ((count ?? 0) === 0) {
@@ -364,7 +364,7 @@ Deno.serve(async (req) => {
     await registrar("conta_excluida_pelo_titular", { email: emailAtual });
 
     // avisa os admins antes de sumir com o registro
-    const { data: admins } = await admin.from("usuarios_ressoa")
+    const { data: admins } = await admin.from("usuarios_ressoar")
       .select("email").eq("papel", "admin").eq("status", "aprovado").neq("user_id", user.id);
     for (const a of admins ?? []) {
       await enviarEmail(a.email, "Uma conta foi excluída — Ressoar",

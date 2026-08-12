@@ -22,10 +22,10 @@ declare
 begin
   for v_par in
     select * from (values
-      ('active-processar-eventos',   'ressoa-processar-eventos',   'select public.processar_eventos_sistema()'),
-      ('active-executar-automacoes', 'ressoa-executar-automacoes', 'select public.executar_automacoes()'),
-      ('active-fila-envios',         'ressoa-fila-envios',         'select public.processar_fila_envios()'),
-      ('active-campanhas',           'ressoa-campanhas',           'select public.processar_campanhas()')
+      ('active-processar-eventos',   'ressoar-processar-eventos',   'select public.processar_eventos_sistema()'),
+      ('active-executar-automacoes', 'ressoar-executar-automacoes', 'select public.executar_automacoes()'),
+      ('active-fila-envios',         'ressoar-fila-envios',         'select public.processar_fila_envios()'),
+      ('active-campanhas',           'ressoar-campanhas',           'select public.processar_campanhas()')
     ) as t(velho, novo, comando)
   loop
     -- só desagenda o que existe: rodar a migração duas vezes não pode dar erro
@@ -38,8 +38,10 @@ end $$;
 
 commit;
 
--- prova: quatro relógios "ressoa-*" ativos, nenhum "active-*" sobrando
+-- prova: quatro relógios "ressoar-*" ativos, nenhum "active-*" sobrando
+-- (o alvo virou "ressoar-" no renome profundo de 12/08/2026; o nome deste
+--  arquivo ficou como está para não mexer na ordem do instalador)
 select
-  count(*) filter (where jobname like 'ressoa-%' and active) as relogios_ressoa,
+  count(*) filter (where jobname like 'ressoar-%' and active) as relogios_ressoar,
   count(*) filter (where jobname like 'active-%')            as sobrou_active
 from cron.job;

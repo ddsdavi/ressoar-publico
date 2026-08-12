@@ -6,11 +6,11 @@
 -- =====================================================================
 begin;
 
-alter table public.usuarios_ressoa
+alter table public.usuarios_ressoar
   add column if not exists admin_mestre boolean not null default false;
 
 -- os donos da operação: trava permanente
-update public.usuarios_ressoa
+update public.usuarios_ressoar
 set admin_mestre = true, papel = 'admin', status = 'aprovado'
 where email in ('voce@exemplo.com','socio@exemplo.com',
                 'dona@exemplo.com','suporte@exemplo.com');
@@ -23,7 +23,7 @@ declare
     ('voce@exemplo.com','socio@exemplo.com',
      'dona@exemplo.com','suporte@exemplo.com');
 begin
-  insert into public.usuarios_ressoa (user_id, email, nome, papel, status, admin_mestre)
+  insert into public.usuarios_ressoar (user_id, email, nome, papel, status, admin_mestre)
   values (new.id, lower(new.email),
           coalesce(new.raw_user_meta_data->>'nome',''),
           case when v_mestre then 'admin' else 'assistente' end,
@@ -68,7 +68,7 @@ begin
   -- sempre deve sobrar ao menos um admin aprovado
   if (new.papel is distinct from 'admin' or new.status is distinct from 'aprovado')
      and old.papel = 'admin' and old.status = 'aprovado'
-     and (select count(*) from public.usuarios_ressoa
+     and (select count(*) from public.usuarios_ressoar
           where papel = 'admin' and status = 'aprovado' and user_id <> old.user_id) = 0 then
     raise exception 'Esta é a última administradora ativa — promova outra pessoa antes.';
   end if;
@@ -76,9 +76,9 @@ begin
   return new;
 end $$;
 
-drop trigger if exists trg_protege_admin_mestre on public.usuarios_ressoa;
+drop trigger if exists trg_protege_admin_mestre on public.usuarios_ressoar;
 create trigger trg_protege_admin_mestre
-  before update or delete on public.usuarios_ressoa
+  before update or delete on public.usuarios_ressoar
   for each row execute function public.fn_protege_admin_mestre();
 
 commit;

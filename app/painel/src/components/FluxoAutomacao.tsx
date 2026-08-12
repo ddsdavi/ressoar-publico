@@ -421,10 +421,10 @@ export default function FluxoAutomacao({
   const [zoom, setZoom] = useState(100);
   // arrastar as caixinhas: qual está sendo levada e onde ela cairia.
   // Passos e gatilhos são zonas separadas — o "tipo" do arrasto viaja no
-  // dataTransfer (application/x-ressoa-*), e cada zona só aceita o seu:
+  // dataTransfer (application/x-ressoar-*), e cada zona só aceita o seu:
   // soltar um gatilho no meio dos passos é recusado pelo próprio navegador.
-  const TIPO_PASSO = "application/x-ressoa-passo";
-  const TIPO_GATILHO = "application/x-ressoa-gatilho";
+  const TIPO_PASSO = "application/x-ressoar-passo";
+  const TIPO_GATILHO = "application/x-ressoar-gatilho";
   const [arrastando, setArrastando] = useState<number | null>(null);
   const [alvoSolta, setAlvoSolta] = useState<number | null>(null);
   const [arrastandoG, setArrastandoG] = useState<number | null>(null);

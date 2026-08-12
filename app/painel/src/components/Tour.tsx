@@ -250,7 +250,7 @@ export default function Tour({ aberto, aoFechar }: { aberto: boolean; aoFechar: 
   if (!aberto || !passo) return null;
 
   function fechar() {
-    localStorage.setItem("ressoa-tour-visto", "1");
+    localStorage.setItem("ressoar-tour-visto", "1");
     setI(0);
     aoFechar();
   }
@@ -358,5 +358,5 @@ export default function Tour({ aberto, aoFechar }: { aberto: boolean; aoFechar: 
 }
 
 export function tourJaVisto() {
-  return localStorage.getItem("ressoa-tour-visto") === "1";
+  return localStorage.getItem("ressoar-tour-visto") === "1";
 }

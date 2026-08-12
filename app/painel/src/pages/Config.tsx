@@ -117,7 +117,7 @@ export default function Config() {
     window.history.replaceState({}, "", window.location.pathname);
     if (window.opener && !window.opener.closed) {
       try {
-        window.opener.postMessage({ ressoa: "google", resultado },
+        window.opener.postMessage({ ressoar: "google", resultado },
                                   window.location.origin);
       } catch { /* quem abriu era de outra origem: segue o fluxo normal */ }
       window.close();
@@ -131,7 +131,7 @@ export default function Config() {
   useEffect(() => {
     const ouvir = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
-      if ((e.data as { ressoa?: string })?.ressoa !== "google") return;
+      if ((e.data as { ressoar?: string })?.ressoar !== "google") return;
       contarOFinal(String((e.data as { resultado?: string }).resultado ?? ""));
     };
     window.addEventListener("message", ouvir);
@@ -159,7 +159,7 @@ export default function Config() {
     try {
       const d = await chamarPlanilhas("conectar",
         { origem: window.location.origin });
-      const janela = window.open(d.url, "ressoa_google",
+      const janela = window.open(d.url, "ressoar_google",
         "width=520,height=680,menubar=no,toolbar=no");
       if (!janela) {
         setGsResposta("O navegador bloqueou a janela do Google. Libere os pop-ups " +

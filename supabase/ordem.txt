@@ -102,3 +102,4 @@ supabase/telefone_da_compra_v1.sql
 supabase/telefone_da_compra_v2_uma_assinatura.sql
 supabase/banimento_v1.sql
 supabase/desafio_planilha_v1.sql
+supabase/renomear_identificadores_ressoar_v1.sql

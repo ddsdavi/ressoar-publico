@@ -41,11 +41,11 @@ declare
 begin
 
 -- Trava de reexecução. Sem ela, rodar o instalador uma segunda vez criava 9
--- mensagens e 5 automações duplicadas — e uma delas ('[RESSOA] Pagamento não
+-- mensagens e 5 automações duplicadas — e uma delas ('[RESSOAR] Pagamento não
 -- caiu') nasce ATIVA, com passo de e-mail. O README promete que rodar de novo
 -- é seguro; até 12/08/2026 essa promessa era falsa justamente aqui.
 if exists (select 1 from public.automacoes
-           where nome = '[RESSOA] Pagamento não caiu') then
+           where nome = '[RESSOAR] Pagamento não caiu') then
   raise notice 'automações de recuperação já existem; nada a fazer';
   return;
 end if;
@@ -199,7 +199,7 @@ v_tem_formacao := jsonb_build_object(
 -- A. Pagamento que não caiu (boleto/PIX gerado e pagamento atrasado)
 -- ===================================================================
 insert into public.automacoes (nome, ativa, gatilho, nota)
-values ('[RESSOA] Pagamento não caiu', true,
+values ('[RESSOAR] Pagamento não caiu', true,
   '[{"tipo":"boleto_gerado"},{"tipo":"pagamento_atrasado"}]'::jsonb,
   'Recuperação de boleto/PIX. Entra quem gerou pagamento e não concluiu; sai na hora '
   || 'em que a compra é aprovada (conferido antes de cada e-mail). 4h e 24h depois do pedido.')
@@ -221,7 +221,7 @@ insert into public.automacao_passos (automacao_fk, ordem, tipo, config) values
 -- B. Carrinho abandonado
 -- ===================================================================
 insert into public.automacoes (nome, ativa, gatilho, nota)
-values ('[RESSOA] Carrinho abandonado', true,
+values ('[RESSOAR] Carrinho abandonado', true,
   '{"tipo":"carrinho_abandonado"}'::jsonb,
   'Chegou no checkout e não concluiu. Um e-mail 2h depois, e só se não tiver comprado.')
 returning automacao_id into v_auto;
@@ -237,7 +237,7 @@ insert into public.automacao_passos (automacao_fk, ordem, tipo, config) values
 -- C. Aluno da Formação → Black / Acompanhamento
 -- ===================================================================
 insert into public.automacoes (nome, ativa, gatilho, nota)
-values ('[RESSOA] Aluno → Black / Acompanhamento', true,
+values ('[RESSOAR] Aluno → Black / Acompanhamento', true,
   '{"tipo":"compra_realizada","produto":"Formação em Biorressonância Aplicada"}'::jsonb,
   'Jogada do lead scoring: só 21 dos 163 compradores da Black eram alunos. Entra quem '
   || 'compra a Formação; sai quem já tem Black ou Acompanhamento (conferido antes de cada e-mail).')
@@ -269,7 +269,7 @@ insert into public.automacao_passos (automacao_fk, ordem, tipo, config) values
 -- D. Lives Semanais → Desafio
 -- ===================================================================
 insert into public.automacoes (nome, ativa, gatilho, nota)
-values ('[RESSOA] Lives → Desafio', true,
+values ('[RESSOAR] Lives → Desafio', true,
   '{"tipo":"lista_inscrita","lista_id":6}'::jsonb,
   'Jogada do lead scoring: 3.550 inscritos nas lives nunca compraram nada. Entra quem se '
   || 'inscreve nas Lives Semanais; sai quem comprar no caminho.')
@@ -295,7 +295,7 @@ insert into public.automacao_passos (automacao_fk, ordem, tipo, config) values
 -- E. Segunda chamada: fase 2 da própria janela quente (D+30)
 -- ===================================================================
 select automacao_id into v_jq from public.automacoes
-where nome like '[RESSOA] Formação — janela quente%';
+where nome like '[RESSOAR] Formação — janela quente%';
 
 if v_jq is not null
    and not exists (select 1 from public.automacao_passos where automacao_fk = v_jq and ordem >= 12) then
@@ -311,7 +311,7 @@ end if;
 -- F. Reativar esteira — enfileirada semanalmente, com teto
 -- ===================================================================
 insert into public.automacoes (nome, ativa, gatilho, nota)
-values ('[RESSOA] Reativar esteira', true,
+values ('[RESSOAR] Reativar esteira', true,
   '{"tipo":"manual"}'::jsonb,
   'Jogada do lead scoring: comprador parado há mais de 90 dias. Não tem gatilho de evento — '
   || 'quem enfileira é a rotina semanal `enfileirar_reativacao()`, com teto por rodada.')
@@ -339,7 +339,7 @@ declare
   v_qtd int;
 begin
   select automacao_id into v_auto from public.automacoes
-  where nome = '[RESSOA] Reativar esteira' and ativa;
+  where nome = '[RESSOAR] Reativar esteira' and ativa;
   if v_auto is null then
     return 0;
   end if;
@@ -368,13 +368,13 @@ end $$;
 
 grant execute on function public.enfileirar_reativacao(int) to service_role;
 
-select cron.schedule('ressoa-reativacao-semanal', '23 10 * * 2',
+select cron.schedule('ressoar-reativacao-semanal', '23 10 * * 2',
                      'select public.enfileirar_reativacao(150)')
-where not exists (select 1 from cron.job where jobname = 'ressoa-reativacao-semanal');
+where not exists (select 1 from cron.job where jobname = 'ressoar-reativacao-semanal');
 
 commit;
 
 select nome, ativa, gatilho,
        (select count(*) from public.automacao_passos p where p.automacao_fk = a.automacao_id) as passos
 from public.automacoes a
-where nome like '[RESSOA]%' order by nome;
+where nome like '[RESSOAR]%' order by nome;

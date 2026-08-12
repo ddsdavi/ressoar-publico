@@ -22,24 +22,24 @@ declare
     'automacao_execucoes','eventos_sistema'];
 begin
   foreach t in array preparaveis loop
-    execute format('drop policy if exists ressoa_opera on public.%I', t);
-    execute format('drop policy if exists ressoa_le on public.%I', t);
+    execute format('drop policy if exists ressoar_opera on public.%I', t);
+    execute format('drop policy if exists ressoar_le on public.%I', t);
     execute format(
-      'create policy ressoa_opera on public.%I for all to authenticated
+      'create policy ressoar_opera on public.%I for all to authenticated
        using (public.papel_atual() in (''admin'',''terapeuta'',''assistente''))
        with check (public.papel_atual() in (''admin'',''terapeuta'',''assistente''))', t);
   end loop;
 
   foreach t in array so_operador loop
-    execute format('drop policy if exists ressoa_opera on public.%I', t);
-    execute format('drop policy if exists ressoa_le on public.%I', t);
+    execute format('drop policy if exists ressoar_opera on public.%I', t);
+    execute format('drop policy if exists ressoar_le on public.%I', t);
     execute format(
-      'create policy ressoa_opera on public.%I for all to authenticated
+      'create policy ressoar_opera on public.%I for all to authenticated
        using (public.papel_atual() in (''admin'',''terapeuta''))
        with check (public.papel_atual() in (''admin'',''terapeuta''))', t);
     -- assistente ainda ENXERGA (acompanha os números), só não escreve
     execute format(
-      'create policy ressoa_le on public.%I for select to authenticated
+      'create policy ressoar_le on public.%I for select to authenticated
        using (public.papel_atual() = ''assistente'')', t);
   end loop;
 end $$;

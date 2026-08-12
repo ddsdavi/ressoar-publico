@@ -76,10 +76,10 @@ EOF
   mkdir -p app/supabase/functions
   cp -r app/functions/* app/supabase/functions/
   export SUPABASE_ACCESS_TOKEN
-  if [ -n "${RESSOA_EMAIL_WEBHOOK:-}" ] && [ -n "${RESSOA_EMAIL_SEGREDO:-}" ]; then
+  if [ -n "${RESSOAR_EMAIL_WEBHOOK:-}" ] && [ -n "${RESSOAR_EMAIL_SEGREDO:-}" ]; then
     (cd app && npx --yes supabase secrets set \
-        RESSOA_EMAIL_WEBHOOK="$RESSOA_EMAIL_WEBHOOK" \
-        RESSOA_EMAIL_SEGREDO="$RESSOA_EMAIL_SEGREDO" \
+        RESSOAR_EMAIL_WEBHOOK="$RESSOAR_EMAIL_WEBHOOK" \
+        RESSOAR_EMAIL_SEGREDO="$RESSOAR_EMAIL_SEGREDO" \
         --project-ref "$SUPABASE_PROJECT_REF" >/dev/null) && verde "  Segredos do canal de e-mail configurados"
   else
     amarelo "  (canal transacional não configurado — códigos de segurança não serão enviados)"
@@ -113,6 +113,11 @@ EOF
   npm --prefix app/painel run build --silent
   if [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ] && [[ "$CLOUDFLARE_ACCOUNT_ID" != *xxxx* ]]; then
     export CLOUDFLARE_ACCOUNT_ID
+    # ATENCAO ao nome do projeto. O projeto que ATENDE os dominios de producao
+    # ainda se chama "ressoa": o Cloudflare Pages nao renomeia projeto, e mover
+    # um dominio de um projeto para outro so pelo painel. O projeto "ressoar" ja
+    # existe e ja tem o painel publicado, esperando os dominios. No dia em que
+    # eles forem movidos, troque as duas linhas abaixo para "ressoar" -- e so.
     npx --yes wrangler pages project create ressoa --production-branch main 2>/dev/null || true
     npx --yes wrangler pages deploy app/painel/dist --project-name ressoa --branch main --commit-dirty=true
     verde "  Painel publicado"
@@ -135,7 +140,7 @@ O QUE FAZER AGORA
    Abra o painel, clique em "Criar conta" e cadastre-se.
    Depois libere a conta rodando no SQL Editor do Supabase:
 
-     update public.usuarios_ressoa
+     update public.usuarios_ressoar
      set papel = 'admin', status = 'aprovado'
      where email = 'SEU@EMAIL.COM';
 

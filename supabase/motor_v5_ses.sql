@@ -65,7 +65,7 @@ begin
           'reply_to', v_msg.reply_to,
           'envio_id', v_envio.envio_id,
           'url_descadastro', v_url_desc),
-        headers := jsonb_build_object('x-ressoa-segredo', v_seg,
+        headers := jsonb_build_object('x-ressoar-segredo', v_seg,
                                       'Content-Type', 'application/json'));
       update public.envios
       set status = 'sent', sent_at = now(), provider = 'ses', provider_message_id = 'pgnet:' || v_req

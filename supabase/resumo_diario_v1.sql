@@ -153,9 +153,9 @@ end $$;
 grant execute on function public.enviar_resumo_diario() to service_role;
 
 -- 8h de São Paulo = 11h UTC
-select cron.schedule('ressoa-resumo-diario', '0 11 * * *',
+select cron.schedule('ressoar-resumo-diario', '0 11 * * *',
                      'select public.enviar_resumo_diario()')
-where not exists (select 1 from cron.job where jobname = 'ressoa-resumo-diario');
+where not exists (select 1 from cron.job where jobname = 'ressoar-resumo-diario');
 
 commit;
 

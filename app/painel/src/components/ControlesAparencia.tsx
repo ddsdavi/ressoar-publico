@@ -12,8 +12,8 @@ const ICONES_TEMA: Record<string, [string, string]> = {
 };
 
 export function aplicarPreferencias() {
-  const tema = localStorage.getItem("ressoa-tema") ?? "sistema";
-  const escala = Number(localStorage.getItem("ressoa-escala") ?? 3);
+  const tema = localStorage.getItem("ressoar-tema") ?? "sistema";
+  const escala = Number(localStorage.getItem("ressoar-escala") ?? 3);
   const escuro = tema === "escuro" ||
     (tema === "sistema" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.classList.toggle("tema-escuro", escuro);
@@ -21,9 +21,9 @@ export function aplicarPreferencias() {
 }
 
 export default function ControlesAparencia() {
-  const [tema, setTema] = useState<string>(() => localStorage.getItem("ressoa-tema") ?? "sistema");
+  const [tema, setTema] = useState<string>(() => localStorage.getItem("ressoar-tema") ?? "sistema");
   const [temaAberto, setTemaAberto] = useState(false);
-  const [escala, setEscala] = useState<number>(() => Number(localStorage.getItem("ressoa-escala") ?? 3));
+  const [escala, setEscala] = useState<number>(() => Number(localStorage.getItem("ressoar-escala") ?? 3));
   const [escalaAberta, setEscalaAberta] = useState(false);
 
   useEffect(() => {
@@ -34,13 +34,13 @@ export default function ControlesAparencia() {
     };
     aplicar();
     mq.addEventListener("change", aplicar);
-    localStorage.setItem("ressoa-tema", tema);
+    localStorage.setItem("ressoar-tema", tema);
     return () => mq.removeEventListener("change", aplicar);
   }, [tema]);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--escala-texto", String(NIVEIS_TEXTO[escala]?.[0] ?? 1));
-    localStorage.setItem("ressoa-escala", String(escala));
+    localStorage.setItem("ressoar-escala", String(escala));
   }, [escala]);
 
   return (

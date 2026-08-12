@@ -25,13 +25,13 @@ update public.app_config
 commit;
 
 -- devolve o agendamento semanal no mesmo horário de antes (terças 10:23)
-select cron.schedule('ressoa-reativacao-semanal', '23 10 * * 2',
+select cron.schedule('ressoar-reativacao-semanal', '23 10 * * 2',
                      'select public.enfileirar_reativacao(150)')
- where not exists (select 1 from cron.job where jobname = 'ressoa-reativacao-semanal');
+ where not exists (select 1 from cron.job where jobname = 'ressoar-reativacao-semanal');
 
 select 'envio_pausado' as item, valor as estado from public.app_config where chave = 'envio_pausado'
 union all
 select 'reativacao semanal', coalesce((select schedule from cron.job
-                                        where jobname = 'ressoa-reativacao-semanal'), 'fora do ar')
+                                        where jobname = 'ressoar-reativacao-semanal'), 'fora do ar')
 union all
 select 'vai sair agora (queued)', count(*)::text from public.envios where status = 'queued';

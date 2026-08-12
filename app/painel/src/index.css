@@ -611,13 +611,13 @@ html.tema-escuro input:focus, html.tema-escuro select:focus, html.tema-escuro te
 .tela-login .ondas span {
   position: absolute; left: 50%; top: 50%; border-radius: 50%;
   border: 1px solid rgba(199, 127, 214, .16); transform: translate(-50%, -50%);
-  animation: pulsoRessoa 9s ease-out infinite;
+  animation: pulsoRessoar 9s ease-out infinite;
 }
 .tela-login .ondas span:nth-child(1) { width: 340px; height: 340px; animation-delay: 0s; }
 .tela-login .ondas span:nth-child(2) { width: 620px; height: 620px; animation-delay: 1.6s; }
 .tela-login .ondas span:nth-child(3) { width: 900px; height: 900px; animation-delay: 3.2s; }
 .tela-login .ondas span:nth-child(4) { width: 1200px; height: 1200px; animation-delay: 4.8s; }
-@keyframes pulsoRessoa {
+@keyframes pulsoRessoar {
   0%   { opacity: 0; transform: translate(-50%, -50%) scale(.86); }
   22%  { opacity: .9; }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.06); }

@@ -196,7 +196,7 @@ export default function LeadScoring() {
             <div className="sub" style={{ marginTop: 10 }}>
               “Aquecer primeiro” e “Fora de oferta” não têm botão de propósito: campanha de
               venda para esses públicos machuca o domínio — reengaje antes. A jogada nº 1
-              já roda sozinha: automação “[RESSOA] Formação — janela quente”.
+              já roda sozinha: automação “[RESSOAR] Formação — janela quente”.
             </div>
           </div>
 

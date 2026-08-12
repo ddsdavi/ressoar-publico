@@ -96,14 +96,14 @@ do $$
 declare v_auto uuid;
 begin
   if exists (select 1 from public.automacoes
-              where nome = '[RESSOA] Desafio — planilha de compradores') then
+              where nome = '[RESSOAR] Desafio — planilha de compradores') then
     raise notice 'automação já existe — nada a fazer';
     return;
   end if;
 
   insert into public.automacoes (nome, ativa, gatilho, nota)
   values (
-    '[RESSOA] Desafio — planilha de compradores',
+    '[RESSOAR] Desafio — planilha de compradores',
     true,
     '{"tipo": "compra_realizada", "produto": "Desafio Casa"}'::jsonb,
     'Assumiu do n8n (workflows A/B) em 12/08/2026. Cada compra aprovada do '
@@ -137,7 +137,7 @@ select
   public.nome_da_turma('CASA_H_{AAAA}_{MM}_{DD}', 1, 7, 'America/Sao_Paulo',
     timestamptz '2026-08-10 07:00-03')  as depois_da_virada,  -- CASA_H_2026_08_17
   (select ativa from public.automacoes
-    where nome = '[RESSOA] Desafio — planilha de compradores') as automacao_ativa,
+    where nome = '[RESSOAR] Desafio — planilha de compradores') as automacao_ativa,
   (select config->>'aba_turma_padrao' from public.automacao_passos p
     join public.automacoes a on a.automacao_id = p.automacao_fk
-    where a.nome = '[RESSOA] Desafio — planilha de compradores') as padrao_da_aba;
+    where a.nome = '[RESSOAR] Desafio — planilha de compradores') as padrao_da_aba;

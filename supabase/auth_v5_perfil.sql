@@ -3,14 +3,14 @@
 -- =====================================================================
 begin;
 
-alter table public.usuarios_ressoa add column if not exists avatar_url text;
+alter table public.usuarios_ressoar add column if not exists avatar_url text;
 
 -- quando o e-mail muda no Auth, o perfil acompanha
 create or replace function public.fn_sync_email_usuario() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   if new.email is distinct from old.email then
-    update public.usuarios_ressoa
+    update public.usuarios_ressoar
     set email = lower(new.email), updated_at = now()
     where user_id = new.id;
   end if;

@@ -45,7 +45,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
 
   async function buscarPerfil(s: Session | null) {
     if (!s) { setPerfil(null); return; }
-    const { data } = await supabase.from("usuarios_ressoa")
+    const { data } = await supabase.from("usuarios_ressoar")
       .select("user_id, email, nome, papel, status, admin_mestre, avatar_url").eq("user_id", s.user.id).maybeSingle();
     setPerfil((data as Perfil) ?? null);
   }

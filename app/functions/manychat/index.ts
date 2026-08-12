@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
     if (!usuario?.id) return false;
 
     const rPerfil = await fetch(
-      `${base}/rest/v1/usuarios_ressoa?user_id=eq.${encodeURIComponent(usuario.id)}` +
+      `${base}/rest/v1/usuarios_ressoar?user_id=eq.${encodeURIComponent(usuario.id)}` +
       `&select=papel,status&limit=1`,
       { headers: cab },
     );
