@@ -34,6 +34,6 @@ select jsonb_build_object(
   'teto', public.cfg('envio_limite_diario'),
   'pausado', public.cfg('envio_pausado'),
   'relogios_de_envio', (select jsonb_agg(jobname) from cron.job
-                        where jobname like 'ressoa-%'
+                        where jobname like 'ressoar-%'
                           and jobname in ('ressoar-fila-envios', 'ressoar-freio-entregabilidade',
                                           'ressoar-rampa-aquecimento'))) as estado;

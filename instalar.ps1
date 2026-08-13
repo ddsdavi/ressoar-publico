@@ -120,8 +120,7 @@ if (-not $SoBanco) {
   if ($env:CLOUDFLARE_ACCOUNT_ID -and $env:CLOUDFLARE_ACCOUNT_ID -notlike "*xxxx*") {
     # Projeto "ressoar" desde 12/08/2026: os dois dominios foram movidos para
     # ele (o Pages nao renomeia projeto, entao foi criado um novo e os dominios
-    # mudaram de casa um por vez, sem janela). O projeto antigo "ressoa" ficou
-    # vazio de dominios e pode ser apagado quando der.
+    # mudaram de casa um por vez, sem janela). O projeto antigo ja foi apagado.
     npx --yes wrangler pages project create ressoar --production-branch main 2>$null
     npx --yes wrangler pages deploy app/painel/dist --project-name ressoar --branch main --commit-dirty=true
     Ok "Painel publicado"
