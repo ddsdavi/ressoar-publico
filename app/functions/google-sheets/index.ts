@@ -15,8 +15,7 @@
 //
 // As credenciais desse cadastro (client id e secret) são configuração de
 // INSTALAÇÃO, não de uso: moram nos secrets desta função, ao lado das chaves
-// da AWS. Quando a tela do Google diz "Prosseguir para Ressoa" — o cadastro
-// no Google ainda tem o nome antigo, e trocá-lo é opcional —, é esse
+// da AWS. Quando a tela do Google diz "Prosseguir para Ressoar", é esse
 // cadastro falando. Ninguém no painel precisa saber que ele existe — do
 // mesmo jeito que ninguém digita o client id do ManyChat para usar ManyChat.
 //

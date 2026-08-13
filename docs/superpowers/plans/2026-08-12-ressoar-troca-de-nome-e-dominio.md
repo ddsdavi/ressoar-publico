@@ -743,7 +743,7 @@ Quando o Davi for conectar a outra coisa nele:
 |---|---|---|
 | Automações `[RESSOA] …` (8 no banco) | as migrações que as criam têm guarda **por nome** (`janela_quente_v*`, `recuperacao_e_jogadas_v1`, `lives_passo_planilha_v1`, `desafio_planilha_v1`…): renomear a linha viva sem editar a guarda faz o instalador recriar duplicata — **ativa** | só com edição casada linha-viva + migração; fora da troca de pneu |
 | Crons `ressoa-*` | zero ganho (ninguém de fora vê) | deixar |
-| Consentimento Google "Ressoa" (projeto `ressoa-504702`) | trocar nome de app **Em produção** com escopo sensível (Sheets) pode reabrir verificação da marca; o redirect URI não muda | trocar sem pressa, aceitando eventual re-verificação — e, no mesmo dia, atualizar os dois textos que citam o nome da tela do Google: o comentário em `app/functions/google-sheets/index.ts` e o bloco "Planilhas do Google" do `.env.example` |
+| Consentimento Google | **FEITO em 12/08/2026**: app e projeto renomeados para Ressoar. O risco temido não existia — a marca **nunca tinha sido verificada** (o console mostrava "sua marca precisa ser verificada"), então não havia verificação a perder. O ID do projeto (`ressoa-504702`) é imutável por definição do Google. | feito |
 | Repos GitHub `ressoa` / `ressoa-publico` | baixo (GitHub redireciona nome antigo); ajustar `git remote set-url` | opcional |
 | Projeto Supabase (nome de exibição) | zero (o ref não muda) | pode renomear à vontade |
 | Projeto Pages `ressoa` / `ressoa-2zl.pages.dev` | **quebra** o alvo do deploy, o pages.dev e o allowlist | **nunca** |

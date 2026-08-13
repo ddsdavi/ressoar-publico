@@ -173,11 +173,44 @@ painel seguiu acessível o tempo todo pelo domínio antigo, que era o que a
 equipe usava. A compra das 16:04 e a vigília do ManyChat atravessaram a mudança
 sem um evento perdido.
 
-**Ficou UMA pendência, por decisão de risco, não por acesso:**
+### Fim da linha: o domínio antigo saiu do ar e o Google virou Ressoar
 
-1. **O app OAuth no Google Cloud ainda se chama "Ressoa"** — trocar exige o
-   console do Google e pode reabrir a verificação de marca (escopo sensível de
-   Planilhas). Os textos do repositório já dizem a verdade sobre isso.
+Ainda em 12/08, com o Davi liberando o navegador de novo:
+
+- **`ressoa.drapatriciadomingos.com.br` foi liberado.** Desconectado do projeto
+  Pages e com o CNAME removido junto (o próprio painel do Cloudflare apaga o
+  registro ao remover o domínio). Hoje ele **não resolve** — está livre para
+  receber outra coisa. Saiu também do `uri_allow_list` do Auth. Antes de soltar,
+  auditei: nenhuma configuração, mensagem ou função do banco citava o endereço;
+  as únicas coisas servidas por ele eram as duas páginas `/f/`, que continuam no
+  domínio novo.
+- **O projeto `ressoa` no Cloudflare foi apagado** (estava sem domínio nenhum).
+  Sobraram dois projetos na conta: `ressoar` e `desafio-casa-harmonizada`.
+- **O app OAuth do Google virou "Ressoar"**, e o projeto do Google Cloud também.
+  O risco que fez adiar **não existia**: o console mostrava *"sua marca precisa
+  ser verificada antes de ser mostrada aos usuários"* — ou seja, nunca houve
+  verificação concedida, então não havia o que reabrir. A tela de consentimento
+  agora diz "Prosseguir para **Ressoar**", e o comentário em
+  `app/functions/google-sheets/index.ts` foi corrigido para descrever isso (ele
+  tinha virado mentira no instante do rename). O **ID** do projeto
+  (`ressoa-504702`) é imutável por definição do Google e fica como está.
+
+**Auditoria do n8n (62 fluxos ativos, lidos um a um):** nenhum filtra por
+`origem`, então a troca do payload para `origem: 'ressoar'` **não quebrou nada** —
+os quatro fluxos que citam a palavra usam `evento_origem` (outro campo) ou apenas
+leem `body.origem` sem comparar. Só dois fluxos citam o nome antigo:
+`[RESSOAR] Envio transacional`, cujo webhook ainda atende em
+`/webhook/ressoa/transacional` (funciona: as duas pontas combinam), e
+`[RESSOA - TERAPEUTAS] Lista de Espera`, que **não é alimentado pela Ressoar** —
+conferi os passos de webhook das automações e nenhum aponta para ele.
+
+**Ficou UMA pendência, e é de acesso:** renomear o caminho
+`/webhook/ressoa/transacional` para `ressoar`. Exige editar o fluxo no n8n e, no
+mesmo minuto, trocar `RESSOAR_EMAIL_WEBHOOK` no `.env` e no secret da função.
+A ferramenta de automação do navegador bloqueou tanto a edição via API quanto a
+abertura do editor do n8n, então ficou para quem tiver o console na mão. **Não é
+defeito:** as duas pontas combinam hoje e o canal de códigos de segurança
+funciona.
 
 **Uma mudança que toca o lado de fora, e merece conferência:** o payload que a
 Ressoar posta em webhook (n8n, Boost) agora manda `origem: 'ressoar'`. Se algum
