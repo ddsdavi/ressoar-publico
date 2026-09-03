@@ -7,6 +7,7 @@ import MinhaConta from "./pages/MinhaConta";
 import Seguranca from "./pages/Seguranca";
 import Tour, { tourJaVisto } from "./components/Tour";
 import ControlesAparencia from "./components/ControlesAparencia";
+import Dialogos from "./components/Dialogo";
 import { ROTULO_PAPEL } from "./lib/papeis";
 import { TITULO } from "./lib/marca";
 import Dashboard from "./pages/Dashboard";
@@ -15,6 +16,7 @@ import Listas from "./pages/Listas";
 import Tags from "./pages/Tags";
 import Mensagens from "./pages/Mensagens";
 import Campanhas from "./pages/Campanhas";
+import QualidadeEmail from "./pages/QualidadeEmail";
 import Automacoes from "./pages/Automacoes";
 import Envios from "./pages/Envios";
 import Dados from "./pages/Dados";
@@ -26,6 +28,7 @@ import LeadScoring from "./pages/LeadScoring";
 import Vendas from "./pages/Vendas";
 import Config from "./pages/Config";
 import ManyChat from "./pages/ManyChat";
+import Landing from "./pages/Landing";
 
 // Layout no padrão do ActiveCampaign: topbar escura + rail de ícones + sidebar branca contextual.
 // Cada seção lista só os seus itens de menu; as rotas que ela responde saem
@@ -58,7 +61,8 @@ const SECOES = [
     // uma rota só pode pertencer a uma seção. Repetida, o clique feito por
     // Email jogava o menu inteiro para Contatos.
     grupos: [
-      { titulo: null, itens: [["Campanhas", "/campanhas"], ["Mensagens", "/mensagens"]] },
+      { titulo: null, itens: [["Campanhas", "/campanhas"], ["Mensagens", "/mensagens"],
+                              ["Qualidade da conta", "/qualidade"]] },
     ],
   },
   {
@@ -205,6 +209,7 @@ function Layout() {
             <Route path="/tags" element={<Tags />} />
             <Route path="/campanhas" element={<Campanhas />} />
             <Route path="/mensagens" element={<Mensagens />} />
+            <Route path="/qualidade" element={<QualidadeEmail />} />
             <Route path="/automacoes" element={<Automacoes />} />
             <Route path="/envios" element={<Envios />} />
             <Route path="/dados" element={<Dados />} />
@@ -242,10 +247,24 @@ function Portao() {
     );
   }
 
+  // /inicio mostra a landing SEMPRE, logado ou não — é como a equipe revê a
+  // página pública sem precisar sair da conta. Fica antes do "Carregando…"
+  // porque a landing não depende da sessão para aparecer.
+  if (local.pathname === "/inicio") return <Landing />;
+
   if (carregando) {
     return <div className="tela-login"><div className="cartao-login">Carregando…</div></div>;
   }
-  if (!sessao) return <Login />;
+
+  // A fachada pública. O visitante que chega na raiz — quase sempre alguém
+  // que recebeu um e-mail e veio olhar o domínio — vê a landing, não mais a
+  // tela de login. A tela de login mora em /entrar (o botão da landing aponta
+  // para lá, no padrão "Minha área" da Ressoa). Deep link protegido
+  // (/campanhas, /leads…) continua caindo no login, como sempre foi.
+  if (local.pathname === "/entrar") {
+    return sessao ? <Navigate to="/" replace /> : <Login />;
+  }
+  if (!sessao) return local.pathname === "/" ? <Landing /> : <Login />;
   if (!perfil || perfil.status !== "aprovado") {
     return (
       <div className="tela-login">
@@ -268,6 +287,9 @@ export default function App() {
   return (
     <ProvedorSessao>
       <BrowserRouter>
+        {/* diálogos da casa no nível raiz: nenhuma página volta a cair no
+            alert/confirm nativo, que congela a aba (e o navegador dirigido) */}
+        <Dialogos />
         <Portao />
       </BrowserRouter>
     </ProvedorSessao>

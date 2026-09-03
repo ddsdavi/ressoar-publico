@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { avisar, confirmar } from "../components/Dialogo";
 import FluxoAutomacao from "../components/FluxoAutomacao";
 import Ajuda from "../components/Ajuda";
 
@@ -184,7 +185,7 @@ export default function Automacoes() {
 
   async function alternar(a: Auto) {
     const acao = a.ativa ? "DESATIVAR" : "ATIVAR";
-    if (!confirm(`${acao} a automação "${a.nome}"?`)) return;
+    if (!(await confirmar({ titulo: `${acao} a automação "${a.nome}"?` }))) return;
     await supabase.from("automacoes").update({ ativa: !a.ativa }).eq("automacao_id", a.automacao_id);
     carregar();
   }
@@ -219,20 +220,20 @@ export default function Automacoes() {
 
 
   async function salvarEditor() {
-    if (!eNome.trim()) { alert("Dê um nome à automação."); return; }
+    if (!eNome.trim()) { await avisar({ titulo: "Dê um nome à automação." }); return; }
     for (const g of eGatilhos) {
       if ((g.tipo === "lista_inscrita" && !g.lista_id && !g.qualquer_lista)
           || (g.tipo === "tag_adicionada" && !g.tag_id)) {
-        alert("Há um gatilho sem a lista ou a tag escolhida.");
+        await avisar({ titulo: "Há um gatilho sem a lista ou a tag escolhida." });
         return;
       }
     }
     for (const p of ePassos) {
-      if (p.tipo === "enviar_email" && !p.config.mensagem_id && !p.config.mensagem) { alert("Há um passo de e-mail sem mensagem escolhida."); return; }
-      if (p.tipo === "webhook" && !p.config.url) { alert("Há um passo de webhook sem URL."); return; }
-      if (p.tipo === "esperar" && !p.config.duracao) { alert("Há um passo de espera sem duração."); return; }
-      if ((p.tipo === "aplicar_tag" || p.tipo === "remover_tag") && !p.config.tag_id) { alert("Há um passo de tag sem tag escolhida."); return; }
-      if ((p.tipo === "inscrever_lista" || p.tipo === "desinscrever_lista") && !p.config.lista_id) { alert("Há um passo de lista sem lista escolhida."); return; }
+      if (p.tipo === "enviar_email" && !p.config.mensagem_id && !p.config.mensagem) { await avisar({ titulo: "Há um passo de e-mail sem mensagem escolhida." }); return; }
+      if (p.tipo === "webhook" && !p.config.url) { await avisar({ titulo: "Há um passo de webhook sem URL." }); return; }
+      if (p.tipo === "esperar" && !p.config.duracao) { await avisar({ titulo: "Há um passo de espera sem duração." }); return; }
+      if ((p.tipo === "aplicar_tag" || p.tipo === "remover_tag") && !p.config.tag_id) { await avisar({ titulo: "Há um passo de tag sem tag escolhida." }); return; }
+      if ((p.tipo === "inscrever_lista" || p.tipo === "desinscrever_lista") && !p.config.lista_id) { await avisar({ titulo: "Há um passo de lista sem lista escolhida." }); return; }
     }
     // um gatilho vira objeto (formato de sempre); vários viram lista
     const gatilho = eGatilhos.length === 0 ? null
@@ -243,38 +244,40 @@ export default function Automacoes() {
       const { data, error } = await supabase.from("automacoes")
         .insert({ nome: eNome.trim(), gatilho, ativa: eAtiva, produto: eProduto || null })
         .select("automacao_id").single();
-      if (error) { alert(error.message); return; }
+      if (error) { await avisar({ titulo: "Não foi possível salvar", corpo: error.message }); return; }
       id = data.automacao_id;
     } else {
       const { error } = await supabase.from("automacoes")
         .update({ nome: eNome.trim(), gatilho, ativa: eAtiva, produto: eProduto || null })
         .eq("automacao_id", editId);
-      if (error) { alert(error.message); return; }
+      if (error) { await avisar({ titulo: "Não foi possível salvar", corpo: error.message }); return; }
       await supabase.from("automacao_passos").delete().eq("automacao_fk", editId);
     }
     if (ePassos.length) {
       const { error } = await supabase.from("automacao_passos").insert(
         ePassos.map((p, i) => ({ automacao_fk: id, ordem: i + 1, tipo: p.tipo, config: p.config })));
-      if (error) alert("Passos: " + error.message);
+      if (error) await avisar({ titulo: "Não foi possível salvar os passos", corpo: error.message });
     }
     setEditId(null);
     carregar();
   }
 
   async function adicionarContatos(alvo: { emails?: string; lista?: number; tag?: number }) {
-    if (editId === "nova" || !editId) { alert("Salve a automação antes de adicionar contatos."); return; }
+    if (editId === "nova" || !editId) { await avisar({ titulo: "Salve a automação antes de adicionar contatos." }); return; }
     let ids: string[] = [];
 
     if (alvo.emails) {
       const lista = alvo.emails.split(/[\n,;]/).map((x) => x.trim().toLowerCase()).filter(Boolean);
-      if (!lista.length) { alert("Nenhum e-mail informado."); return; }
+      if (!lista.length) { await avisar({ titulo: "Nenhum e-mail informado." }); return; }
       const { data } = await supabase.from("tabela_1_leads").select("lead_id, email").in("email", lista);
       ids = ((data ?? []) as { lead_id: string }[]).map((r) => r.lead_id);
       const achados = ((data ?? []) as { email: string }[]).map((r) => r.email.toLowerCase());
       const faltando = lista.filter((e) => !achados.includes(e));
-      if (faltando.length && !confirm(
-        `${faltando.length} e-mail(s) não estão na base e serão ignorados:\n\n` +
-        faltando.slice(0, 8).join("\n") + "\n\nContinuar com os outros?")) return;
+      if (faltando.length && !(await confirmar({
+        titulo: `${faltando.length} e-mail(s) não estão na base e serão ignorados`,
+        corpo: faltando.slice(0, 8).join(", ") + " — continuar com os outros?",
+        confirmarTexto: "Continuar",
+      }))) return;
     } else if (alvo.lista) {
       // só quem está ativo: quem se descadastrou não volta por aqui
       const { data } = await supabase.from("lead_listas")
@@ -286,17 +289,19 @@ export default function Automacoes() {
       ids = ((data ?? []) as { lead_fk: string }[]).map((r) => r.lead_fk);
     }
 
-    if (!ids.length) { alert("Nenhum contato encontrado."); return; }
-    if (!confirm(`Colocar ${ids.length} contato(s) nesta automação agora?`)) return;
+    if (!ids.length) { await avisar({ titulo: "Nenhum contato encontrado." }); return; }
+    if (!(await confirmar({ titulo: `Colocar ${ids.length} contato(s) nesta automação agora?`, confirmarTexto: "Colocar" }))) return;
 
     const { data, error } = await supabase.rpc("adicionar_a_automacao", {
       p_automacao: editId, p_leads: ids,
     });
-    if (error) { alert(error.message); return; }
+    if (error) { await avisar({ titulo: "Não foi possível salvar", corpo: error.message }); return; }
     const r = data as Record<string, number | string>;
-    if (r.erro) { alert(String(r.erro)); return; }
-    alert(`${r.adicionados} contato(s) entraram na automação.` +
-      (Number(r.ja_estavam) > 0 ? `\n${r.ja_estavam} já estavam dentro e foram ignorados.` : ""));
+    if (r.erro) { await avisar({ titulo: "Não deu certo", corpo: String(r.erro) }); return; }
+    await avisar({
+      titulo: `${r.adicionados} contato(s) entraram na automação.`,
+      corpo: Number(r.ja_estavam) > 0 ? `${r.ja_estavam} já estavam dentro e foram ignorados.` : undefined,
+    });
     carregar();
   }
 
@@ -483,7 +488,7 @@ export default function Automacoes() {
           }}
           onSalvar={salvarEditor}
           onFechar={() => setEditId(null)}
-          onVerContatos={() => alert("Em breve: a lista de quem passou por esta automação.")}
+          onVerContatos={() => avisar({ titulo: "Em breve: a lista de quem passou por esta automação." })}
           onAdicionarContatos={adicionarContatos}
         />
       )}

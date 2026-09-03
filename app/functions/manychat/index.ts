@@ -16,6 +16,13 @@
 //   - addTagByName NÃO cria a tag: responde "Tag does not exist" e não faz
 //     nada. É preciso criar antes com /page/createTag.
 
+import {
+  assinantePodeReceberTag,
+  assinanteTemTag,
+  respostaManyChatOk,
+  telefoneWhatsAppManyChat,
+} from "./resposta.ts";
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type, apikey",
@@ -143,6 +150,25 @@ Deno.serve(async (req) => {
     return perfis?.[0]?.papel === "admin" && perfis?.[0]?.status === "aprovado";
   };
 
+  // ---- PORTÃO ÚNICO (auditoria 25/08/2026) ----
+  // Toda operação daqui é de bastidor: ler o assinante (nome, status, tags,
+  // WhatsApp = PII de terceiro), aplicar/remover tag (dispara WhatsApp de
+  // verdade), criar contato, listar/criar tags da conta. Nada disso é público.
+  // A função roda com verify_jwt=false e a chave anon é pública, então a
+  // barreira mora AQUI: só o motor (service key, do cron) ou um admin logado
+  // passam. Antes, só as ações destrutivas conferiam — 'procurar', 'tags',
+  // 'criar_tag', 'desmarcar', 'registrar', 'testar' e o fluxo de marcar tag
+  // ficaram abertos, vazando PII de lead por telefone e permitindo abuso.
+  {
+    const autorPortao = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+    const ehMotorPortao = autorPortao !== "" &&
+      (autorPortao === chave || (chaveServicoDb !== "" && autorPortao === chaveServicoDb));
+    if (!ehMotorPortao && !(await usuarioEhAdmin())) {
+      return new Response(JSON.stringify({ erro: "não autorizado" }),
+                          { status: 401, headers: CORS });
+    }
+  }
+
 
   const anotar = async (lead: string | undefined, acao: string, tag: string,
                         ok: boolean, detalhe: string) => {
@@ -168,7 +194,27 @@ Deno.serve(async (req) => {
     const texto = await r.text();
     let dados: Record<string, unknown> = {};
     try { dados = JSON.parse(texto); } catch { dados = { bruto: texto.slice(0, 300) }; }
-    return { ok: r.ok, status: r.status, dados };
+    return { ok: respostaManyChatOk(r.ok, dados), status: r.status, dados };
+  };
+
+  const esperar = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const conferirAssinante = async (id: number) => {
+    for (let tentativa = 0; tentativa < 3; tentativa++) {
+      const r = await mc(`/subscriber/getInfo?subscriber_id=${id}`);
+      if (r.ok && assinantePodeReceberTag(r.dados)) return r;
+      if (tentativa < 2) await esperar(400 * (tentativa + 1));
+    }
+    return null;
+  };
+
+  const conferirTag = async (id: number, tag: string) => {
+    for (let tentativa = 0; tentativa < 3; tentativa++) {
+      const r = await conferirAssinante(id);
+      if (r && assinanteTemTag(r.dados, tag)) return true;
+      if (tentativa < 2) await esperar(400 * (tentativa + 1));
+    }
+    return false;
   };
 
   // "data" é lista nas buscas e objeto na criação — aceita os dois
@@ -422,15 +468,13 @@ Deno.serve(async (req) => {
       const r = await mc("/subscriber/createSubscriber", "POST", {
         first_name: partes[0] || "Contato",
         last_name: partes.slice(1).join(" ") || "",
-        whatsapp_phone: fone,
-        has_opt_in_sms: true,
-        has_opt_in_email: true,
-        consent_phrase: "cadastro vindo da Ressoar",
+        whatsapp_phone: telefoneWhatsAppManyChat(fone),
       });
-      const id = primeiro(r.dados);
+      const id = r.ok ? primeiro(r.dados) : null;
+      const assinanteValido = id ? await conferirAssinante(id) : null;
       let campoLigado = false;
       let detalheCampo: unknown;
-      if (id) {
+      if (id && assinanteValido) {
         const ligacao = await mc("/subscriber/setCustomField", "POST", {
           subscriber_id: id,
           field_id: Number(campoWhats),
@@ -439,13 +483,18 @@ Deno.serve(async (req) => {
         campoLigado = ligacao.ok;
         detalheCampo = ligacao.dados;
       }
-      await anotar(c.lead_id, "criou pela tela", "", !!id,
-                   id ? `assinante ${id}` : JSON.stringify(r.dados).slice(0, 300));
+      const criadoRealmente = !!id && !!assinanteValido;
+      await anotar(c.lead_id, "criou pela tela", "", criadoRealmente,
+                   criadoRealmente ? `assinante ${id}` : JSON.stringify(r.dados).slice(0, 300));
       return new Response(JSON.stringify({
-        ok: !!id && campoLigado, criado: !!id, assinante: id, formatado: fone,
-        detalhe: !id ? r.dados : campoLigado ? undefined : detalheCampo,
-        erro: id && !campoLigado ? "usuário criado, mas não deu para ligar o campo do WhatsApp" : undefined,
-      }), { status: id && campoLigado ? 200 : 400, headers: CORS });
+        ok: criadoRealmente && campoLigado, criado: criadoRealmente, assinante: id, formatado: fone,
+        detalhe: !criadoRealmente ? r.dados : campoLigado ? undefined : detalheCampo,
+        erro: id && !assinanteValido
+          ? "o ManyChat devolveu um cadastro apagado ou inválido"
+          : id && !campoLigado
+          ? "usuário criado, mas não deu para ligar o campo do WhatsApp"
+          : undefined,
+      }), { status: criadoRealmente && campoLigado ? 200 : 400, headers: CORS });
     }
 
     if (c.acao === "desmarcar") {
@@ -513,6 +562,13 @@ Deno.serve(async (req) => {
   let id: number | null = c.manychat_id ? Number(c.manychat_id) : null;
   let como = id ? "id guardado" : "";
 
+  // Um id devolvido por createSubscriber não basta: o ManyChat também pode
+  // manter um registro com status "deleted". Esse registro não recebe tag.
+  if (id && !(await conferirAssinante(id))) {
+    id = null;
+    como = "";
+  }
+
   if (!id && campoWhats && fone) {
     id = primeiro((await mc(
       `/subscriber/findByCustomField?field_id=${encodeURIComponent(campoWhats)}` +
@@ -552,12 +608,9 @@ Deno.serve(async (req) => {
     const r = await mc("/subscriber/createSubscriber", "POST", {
       first_name: partes[0] || "Contato",
       last_name: partes.slice(1).join(" ") || "",
-      whatsapp_phone: fone,
-      has_opt_in_sms: true,
-      has_opt_in_email: true,
-      consent_phrase: "cadastro vindo da Ressoar",
+      whatsapp_phone: telefoneWhatsAppManyChat(fone),
     });
-    id = primeiro(r.dados);
+    id = r.ok ? primeiro(r.dados) : null;
     criado = !!id;
     como = "criado agora";
 
@@ -576,6 +629,16 @@ Deno.serve(async (req) => {
       await anotar(c.lead_id, "criar", c.tag, false, JSON.stringify(r.dados).slice(0, 400));
       return new Response(JSON.stringify({ ok: false, erro: "não deu para criar", detalhe: r.dados }),
                           { status: 400, headers: CORS });
+    }
+
+    if (!(await conferirAssinante(id))) {
+      await anotar(c.lead_id, "criar", c.tag, false,
+                   `o ManyChat devolveu o assinante ${id}, mas ele está apagado ou inválido`);
+      return new Response(JSON.stringify({
+        ok: false,
+        erro: "o ManyChat devolveu um cadastro apagado ou inválido",
+        assinante: id,
+      }), { status: 409, headers: CORS });
     }
 
     // Guarda também o número no campo personalizado usado nas próximas
@@ -600,6 +663,31 @@ Deno.serve(async (req) => {
                         { headers: CORS });
   }
 
+  const assinanteAtual = await conferirAssinante(id);
+  if (!assinanteAtual) {
+    await anotar(c.lead_id, "buscar", c.tag, false,
+                 `assinante ${id} apagado ou inválido — tag não aplicada`);
+    return new Response(JSON.stringify({
+      ok: false, motivo: "assinante apagado ou inválido no ManyChat", assinante: id,
+    }), { status: 409, headers: CORS });
+  }
+
+  // O formulário tenta imediatamente; o cron é apenas a retentativa. Quando
+  // ele chegar depois, não reaplica a mesma tag nem dispara o fluxo de novo.
+  if (assinanteTemTag(assinanteAtual.dados, c.tag)) {
+    if (c.lead_id && String(c.manychat_id ?? "") !== String(id)) {
+      await fetch(`${base}/rest/v1/tabela_1_leads?lead_id=eq.${c.lead_id}`, {
+        method: "PATCH", headers: { ...cab, Prefer: "return=minimal" },
+        body: JSON.stringify({ manychat_id: String(id) }),
+      });
+    }
+    await anotar(c.lead_id, "já estava marcado", c.tag, true,
+                 `assinante ${id} (${como}); tag já confirmada pelo ManyChat`);
+    return new Response(JSON.stringify({
+      ok: true, assinante: id, criado, como, ja_estava_marcado: true,
+    }), { headers: CORS });
+  }
+
   // ---- 3. marcar ----
   // Tenta aplicar e só cria a tag ao esbarrar no erro: o caso comum é ela
   // já existir, e criar antes gastaria uma chamada em toda marcação.
@@ -611,17 +699,25 @@ Deno.serve(async (req) => {
                  { subscriber_id: id, tag_name: c.tag });
   }
 
-  // achou uma vez, não procura de novo
-  if (r.ok && c.lead_id && !c.manychat_id) {
+  const tagConfirmada = r.ok && await conferirTag(id, c.tag);
+
+  // Só grava o vínculo depois que o próprio ManyChat devolve a tag aplicada.
+  if (tagConfirmada && c.lead_id && !c.manychat_id) {
     await fetch(`${base}/rest/v1/tabela_1_leads?lead_id=eq.${c.lead_id}`, {
       method: "PATCH", headers: { ...cab, Prefer: "return=minimal" },
       body: JSON.stringify({ manychat_id: String(id) }),
     });
   }
 
-  await anotar(c.lead_id, criado ? "criou e marcou" : "marcou", c.tag, r.ok,
-               r.ok ? `assinante ${id} (${como})` : JSON.stringify(r.dados).slice(0, 400));
+  await anotar(c.lead_id, criado ? "criou e marcou" : "marcou", c.tag, tagConfirmada,
+               tagConfirmada
+                 ? `assinante ${id} (${como}); tag confirmada pelo ManyChat`
+                 : r.ok
+                 ? `assinante ${id} não devolveu a tag após a aplicação`
+                 : JSON.stringify(r.dados).slice(0, 400));
 
-  return new Response(JSON.stringify({ ok: r.ok, assinante: id, criado, como }),
-                      { status: r.ok ? 200 : 400, headers: CORS });
+  return new Response(JSON.stringify({
+    ok: tagConfirmada, assinante: id, criado, como,
+    erro: tagConfirmada ? undefined : "o ManyChat não confirmou a tag",
+  }), { status: tagConfirmada ? 200 : 409, headers: CORS });
 });

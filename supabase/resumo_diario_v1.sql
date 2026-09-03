@@ -15,10 +15,18 @@
 --   2. O destinatário mora em `app_config.resumo_diario_para` e NÃO no
 --      código: endereço de pessoa não entra em repositório.
 --      Vazio = ninguém recebe (e a função avisa isso no retorno).
+--
+--   3. O endereço do painel (o botão do fim) vem de `app_config.url_painel`,
+--      gravado pelo instalador a partir do .env (VITE_OG_URL). Uma cópia da
+--      plataforma nunca deve apontar para o painel de outra operação; até
+--      03/09/2026 o domínio estava escrito aqui dentro. Vazio = sem botão.
 -- =====================================================================
 begin;
 
 insert into public.app_config (chave, valor) values ('resumo_diario_para', '')
+on conflict (chave) do nothing;
+
+insert into public.app_config (chave, valor) values ('url_painel', '')
 on conflict (chave) do nothing;
 
 create or replace function public.resumo_diario_dados()
@@ -67,6 +75,7 @@ language plpgsql security definer set search_path to 'public' as $$
 declare
   v_d jsonb := public.resumo_diario_dados();
   v_para text := coalesce(public.cfg('resumo_diario_para'), '');
+  v_painel text := rtrim(btrim(coalesce(public.cfg('url_painel'), '')), '/');
   v_key text := public.cfg('resend_api_key');
   v_de text := coalesce(public.cfg('from_name_padrao'), 'Ressoar') || ' <'
                || coalesce(public.cfg('from_email_padrao'), '') || '>';
@@ -128,10 +137,12 @@ begin
                             else 'liberado' end || '</li>'
     || '</ul>'
     || '<h3>Pronto para vender</h3>'
-    || '<p><b>' || (v_d->>'janela_quente') || '</b> pessoas estão na janela quente da Formação agora.</p>'
-    || '<p style="margin-top:22px"><a href="https://ressoar.drapatriciadomingos.com.br/leadscoring"'
-    || ' style="background:#6b4ea8;color:#fff;padding:10px 18px;border-radius:8px;'
-    || 'text-decoration:none">Abrir o Lead scoring</a></p>'
+    || '<p><b>' || (v_d->>'janela_quente') || '</b> pessoas estão na janela quente agora.</p>'
+    || case when v_painel <> '' then
+         '<p style="margin-top:22px"><a href="' || v_painel || '/leadscoring"'
+         || ' style="background:#6b4ea8;color:#fff;padding:10px 18px;border-radius:8px;'
+         || 'text-decoration:none">Abrir o Lead scoring</a></p>'
+       else '' end
     || '<p style="color:#999;font-size:12px;margin-top:20px">Resumo automático da sua operação. '
     || 'Para trocar quem recebe, mude “resumo_diario_para” em Configurações.</p></div>';
 

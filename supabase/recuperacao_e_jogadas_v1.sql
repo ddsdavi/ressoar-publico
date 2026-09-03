@@ -45,8 +45,12 @@ begin
 -- caiu') nasce ATIVA, com passo de e-mail. O README promete que rodar de novo
 -- é seguro; até 12/08/2026 essa promessa era falsa justamente aqui.
 if exists (select 1 from public.automacoes
-           where nome = '[RESSOAR] Pagamento não caiu') then
-  raise notice 'automações de recuperação já existem; nada a fazer';
+           where nome = '[RESSOAR] Pagamento não caiu')
+   -- Numa CÓPIA da plataforma, nova_operacao_v1.sql removeu este conteúdo de
+   -- propósito e deixou a marca em app_config; sem esta condição, a próxima
+   -- atualização (./instalar.sh) o traria de volta — automação ativa inclusa.
+   or coalesce(public.cfg('conteudo_origem'), '') = 'removido' then
+  raise notice 'automações de recuperação já existem, ou foram removidas de propósito; nada a fazer';
   return;
 end if;
 

@@ -161,11 +161,17 @@ Deno.serve(async (req) => {
     ?? req.headers.get("x-ressoar-segredo")
     ?? null;
 
-  if (SEGREDO) {
-    const enviado = tokenRecebido ?? "";
-    if (enviado !== SEGREDO) {
-      return new Response(JSON.stringify({ erro: "não autorizado" }), { status: 401, headers: cors });
-    }
+  // Fail-closed (auditoria 25/08/2026): sem o segredo configurado, RECUSA.
+  // Antes, SEGREDO vazio pulava toda a verificação e o webhook aceitava
+  // qualquer requisição — forja de venda/reembolso e mass-assignment de
+  // lista/tag. Em produção VENDA_SEGREDO está setado, então o comportamento
+  // não muda; isto só fecha o caso de um deploy sem o segredo.
+  if (!SEGREDO) {
+    console.error("VENDA_SEGREDO ausente — webhook de venda recusado por segurança");
+    return new Response(JSON.stringify({ erro: "webhook não configurado" }), { status: 503, headers: cors });
+  }
+  if ((tokenRecebido ?? "") !== SEGREDO) {
+    return new Response(JSON.stringify({ erro: "não autorizado" }), { status: 401, headers: cors });
   }
 
   const b = await req.json().catch(() => null);

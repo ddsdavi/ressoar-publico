@@ -26,7 +26,7 @@ const PADRAO: Campo[] = [
 const vazio = {
   slug: "", nome: "", titulo: "", subtitulo: "", campos: PADRAO,
   lista_fk: "", tag_fk: "", botao: "Quero participar",
-  sucesso: "Pronto! Confira seu e-mail.", redirecionar: "", cor: "#6b4ea8", ativo: true,
+  sucesso: "Pronto! Confira seu e-mail.", redirecionar: "", cor: "#82308f", ativo: true,
 };
 
 export default function Formularios() {

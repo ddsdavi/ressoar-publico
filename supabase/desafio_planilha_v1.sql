@@ -96,8 +96,11 @@ do $$
 declare v_auto uuid;
 begin
   if exists (select 1 from public.automacoes
-              where nome = '[RESSOAR] Desafio — planilha de compradores') then
-    raise notice 'automação já existe — nada a fazer';
+              where nome = '[RESSOAR] Desafio — planilha de compradores')
+     -- numa cópia da plataforma o conteúdo de origem foi removido de propósito
+     -- (nova_operacao_v1.sql deixa a marca); a atualização não o traz de volta
+     or coalesce(public.cfg('conteudo_origem'), '') = 'removido' then
+    raise notice 'automação já existe, ou foi removida de propósito — nada a fazer';
     return;
   end if;
 

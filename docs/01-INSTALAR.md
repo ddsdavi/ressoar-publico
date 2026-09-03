@@ -40,7 +40,7 @@ https://dash.cloudflare.com → escolha a conta → o ID aparece na URL:
 
 ```bash
 git clone <endereço-do-repositório>
-cd ressoa
+cd ressoar
 cp .env.example .env
 ```
 
@@ -53,7 +53,9 @@ Abra o `.env` e preencha com o que você anotou. Cada linha tem um comentário d
 .\instalar.ps1       # Windows (PowerShell)
 ```
 
-Ele cria o banco inteiro, publica as 5 funções e sobe o painel. No fim, imprime o endereço.
+Ele cria o banco inteiro, grava nele os valores desta instalação (o endereço que o motor
+chama, o do painel e os remetentes verificados, lidos do `.env`), publica as 11 funções e sobe
+o painel. No fim, imprime o endereço.
 
 > Na primeira vez o `wrangler` pode pedir para você autorizar no navegador. Escolha a conta certa.
 
@@ -87,7 +89,7 @@ values ('dona@empresa.com', 'Dona da operação');
 
 | Tipo | Nome | Destino | Proxy |
 |---|---|---|---|
-| CNAME | `ressoa` | `<seu-projeto>.pages.dev` | ligado |
+| CNAME | `ressoar` | `<seu-projeto>.pages.dev` | ligado |
 
 3. No Supabase → **Authentication → URL Configuration**, ponha a URL final em
    *Site URL* e em *Redirect URLs*.
@@ -139,6 +141,7 @@ Ficam de fora, de propósito:
 | `corrige_*.sql` | consertos pontuais de uma migração específica — não fazem sentido num banco novo |
 | `regras_produtos.sql` | as regras dos produtos de **uma** operação; monte as suas pela tela |
 | `teste_*.sql` | provas do motor, para rodar à mão quando quiser conferir |
+| `nova_operacao_v1.sql` | só para uma **cópia** da plataforma: tira de uma base recém-criada o conteúdo da operação de origem — [11-DUPLICAR-E-VENDER.md](11-DUPLICAR-E-VENDER.md) |
 
 Os testes valem a pena conhecer:
 

@@ -20,9 +20,54 @@ const MAPA: Record<string, string> = {
   "email.clicked": "click",
 };
 
+// Verificação de assinatura Svix (auditoria 25/08/2026). O Resend assina cada
+// webhook via Svix: HMAC-SHA256 sobre `${id}.${timestamp}.${corpo}`, com o
+// segredo `whsec_…` do painel do Resend guardado em RESEND_WEBHOOK_SECRET.
+// Sem isso, qualquer um POSTava um "bounce"/"complaint" forjado e envenenava
+// a supressão (bloqueava e-mails de uma vítima só sabendo o endereço dela).
+// Fail-closed: sem segredo configurado ou assinatura inválida → recusa.
+function igualTempoConstante(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+async function assinaturaSvixValida(req: Request, corpoBruto: string): Promise<boolean> {
+  const segredo = Deno.env.get("RESEND_WEBHOOK_SECRET") ?? "";
+  if (!segredo) return false;
+  const id = req.headers.get("svix-id") ?? "";
+  const ts = req.headers.get("svix-timestamp") ?? "";
+  const assin = req.headers.get("svix-signature") ?? "";
+  if (!id || !ts || !assin) return false;
+  const t = parseInt(ts, 10);
+  if (!Number.isFinite(t) || Math.abs(Date.now() / 1000 - t) > 300) return false; // ±5 min
+  try {
+    const bruto = segredo.includes("_") ? segredo.split("_")[1] : segredo;
+    const chaveBytes = Uint8Array.from(atob(bruto), (c) => c.charCodeAt(0));
+    const chave = await crypto.subtle.importKey(
+      "raw", chaveBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const mac = await crypto.subtle.sign(
+      "HMAC", chave, new TextEncoder().encode(`${id}.${ts}.${corpoBruto}`));
+    const esperado = btoa(String.fromCharCode(...new Uint8Array(mac)));
+    return assin.split(" ").some((p) => {
+      const s = p.includes(",") ? p.split(",")[1] : p;
+      return igualTempoConstante(s, esperado);
+    });
+  } catch (e) {
+    console.error("falha ao verificar assinatura Svix:", String(e));
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("ok");
-  const evt = await req.json().catch(() => null);
+  const corpoBruto = await req.text();
+  if (!(await assinaturaSvixValida(req, corpoBruto))) {
+    return new Response("assinatura inválida", { status: 401 });
+  }
+  // deno-lint-ignore no-explicit-any
+  let evt: any;
+  try { evt = JSON.parse(corpoBruto); } catch { evt = null; }
   if (!evt?.type || !MAPA[evt.type]) return new Response("ignorado");
 
   const tipo = MAPA[evt.type];

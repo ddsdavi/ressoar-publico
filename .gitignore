@@ -62,3 +62,4 @@ recorte_*.txt
 # Prompt de passagem entre sessões: cita os endereços de teste do Davi e
 # fica só na máquina dele. O equivalente sem dado pessoal é docs/09.
 PASSAGEM.md
+.secrets.env

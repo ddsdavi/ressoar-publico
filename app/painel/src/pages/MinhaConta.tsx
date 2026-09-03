@@ -365,7 +365,7 @@ export default function MinhaConta() {
           </>
         ) : etapaExcluir === "inicio" ? (
           <>
-            <div className="aviso" style={{ background: "var(--ac-vermelho2)", borderColor: "#F0C9C5", color: "#7A1F1F" }}>
+            <div className="aviso grave">
               <b>Atenção: esta ação é irreversível.</b> Para continuar, confirme sua senha e digite a palavra EXCLUIR.
               Depois enviaremos um código para o seu e-mail cadastrado.
             </div>
@@ -385,7 +385,7 @@ export default function MinhaConta() {
           </>
         ) : (
           <>
-            <div className="aviso" style={{ background: "var(--ac-vermelho2)", borderColor: "#F0C9C5", color: "#7A1F1F" }}>
+            <div className="aviso grave">
               Último passo: digite o código que enviamos para o seu e-mail. Ao confirmar, sua conta será apagada.
             </div>
             <div className="linha">

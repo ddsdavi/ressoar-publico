@@ -4,7 +4,94 @@ Documento de passagem. Serve para quem pegar este projeto do zero — outra
 sessão, outra conta, outra pessoa — saber em que pé está sem ter que
 reconstituir a conversa.
 
-Última atualização: 12/08/2026.
+Última atualização: 03/09/2026.
+
+---
+
+## Tudo no GitHub, e um kit para duplicar a plataforma (03/09/2026)
+
+Pedido do dia: "tudo suba pros githubs" e "tudo que for preciso pra eu poder
+duplicar esse projeto e vender pra outra pessoa". O roteiro completo da cópia
+está em [11-DUPLICAR-E-VENDER.md](11-DUPLICAR-E-VENDER.md); aqui fica o que
+mudou, o que foi para a produção e o que ficou de decisão.
+
+### O que subiu
+
+- O trabalho de 30 e 31/08 que estava só em produção — Qualidade da conta,
+  envio avulso e as views `automacao_stats`/`mensagem_stats` — entrou no
+  repositório (`52be432`).
+- Os três repositórios. O espelho público estava **parado desde 13/08**: a
+  árvore de `publico/main` era idêntica à do `main` em `a59ebff`, e 44
+  arquivos novos nunca tinham saído daqui (a "exclusão de 44 arquivos" que
+  uma sessão anterior anotou era só atraso). Voltou a andar pelo
+  `scripts/publicar_espelho.sh`, que monta um commit com a árvore do `main`
+  em cima de `publico/main`, recusa arquivo proibido e imprime as linhas
+  novas com cara de e-mail ou telefone para olhar antes de publicar.
+  `docs/10-PLANO-SEGURANCA.md` fica **fora** dele, de propósito: lista o que
+  ainda não está protegido.
+
+### O kit de duplicação, e por que cada peça existe
+
+| Peça | O que faz | Por quê |
+|---|---|---|
+| `scripts/configurar_instancia.py` (os dois instaladores chamam) | grava em `app_config` os valores DESTA instalação: `url_api_interna` (de `SUPABASE_URL`), `url_painel` (de `VITE_OG_URL`), `remetentes_verificados` (de `REMETENTES_VERIFICADOS`) | esses valores estavam escritos dentro de migrações; uma cópia nascia com o motor chamando a função de envio **deste** projeto e com o remetente desta casa |
+| `supabase/nova_operacao_v1.sql` (fora do `ordem.txt`) | numa base **vazia**, apaga as 7 automações `[RESSOAR] …` e as 12 mensagens que as migrações semeiam, zera a tag do ManyChat e os endereços da casa; deixa a marca `conteudo_origem = removido` | `recuperacao_e_jogadas_v1` cria automações **ativas** com os textos e links desta operação; sem isto, o primeiro carrinho abandonado do comprador receberia o e-mail de outra casa |
+| as quatro migrações de conteúdo (`recuperacao_e_jogadas_v1`, `janela_quente_v1`, `janela_quente_v2_ligada`, `desafio_planilha_v1`) | a guarda por nome ganhou `or conteudo_origem = removido`; a v2 deixa de lançar exceção quando a automação não existe de propósito | sem isso, a primeira atualização de uma cópia limpa (`./instalar.sh`) recriava o conteúdo — e o roteiro de limpeza já não podia rodar, porque a base teria gente |
+| `rastreio` lê o secret `URL_PAINEL` | destino de cortesia de link quebrado vem do `.env`; sem ele, página curta "Este link expirou" (410) | o domínio desta operação estava escrito na função |
+| `resumo_diario_v1.sql` lê `url_painel` | o botão do resumo aponta para o painel da instalação; vazio, sem botão; "janela quente da Formação" virou "janela quente" | idem |
+| `mesa_v2_guardas.sql` semeia `remetentes_verificados` **vazio**; `email_da_compra_v3_operacao.sql` não semeia mais endereço | a caixa institucional foi para `emails_da_operacao_dados.local.sql`, junto com os pessoais | nenhum e-mail desta casa nasce dentro de uma cópia |
+| `.env.example`: `REMETENTES_VERIFICADOS`, `CLOUDFLARE_PAGES_PROJECT`; `VITE_OG_URL` explicado | | |
+| `Relatorios.tsx` | o exemplo do campo de página deixou de ser o site desta operação | |
+
+### O que foi para a produção hoje, e a prova
+
+- `configurar_instancia.py` rodou contra esta base: `url_api_interna`
+  regravado com o **mesmo** valor (idempotência provada) e `url_painel`
+  gravado pela primeira vez; `remetentes_verificados` intocado (a chave não
+  estava no `.env` — agora está, para uma reinstalação do zero não nascer sem
+  remetente).
+- Secret `URL_PAINEL` gravado pela API e `rastreio` publicado. Prova de fora:
+  `?t=c` sem envio → 302 para o painel; `?t=o` → 200 `image/gif`; `?t=c` com
+  envio inexistente → 302.
+- `resumo_diario_v1.sql` reaplicado: a função não cita mais domínio nenhum,
+  lê `url_painel`, e o relógio continua único.
+- `nova_operacao_v1.sql` rodado **contra esta base, de propósito**: recusou
+  ("esta base tem 14.799 leads e 2.155 envios") e nada mudou — 8 automações,
+  117 mensagens, tag e 6 endereços da casa iguais antes e depois.
+- Painel: build e deploy (`2b495a3e.ressoar.pages.dev`); o bundle no ar
+  passou de `index-DUIIeDCw` para `index-BDBae8kh`, e a `og:image` saiu
+  absoluta porque o build foi feito com o `.env` carregado, como o
+  instalador faz.
+
+### O que NÃO foi reaplicado, e por quê
+
+- `mesa_v2_guardas.sql` e `email_da_compra_v3_operacao.sql`: as mudanças são
+  no que a migração **semeia** (`on conflict do nothing`, linha removida), e
+  as linhas já existem nesta base — reaplicar não mudaria nada. E vale a
+  regra geral: reaplicar uma migração antiga **fora da ordem** pode regredir
+  funções que migrações posteriores redefiniram; só o instalador, na ordem,
+  é seguro.
+- As quatro migrações de conteúdo: o corpo alterado foi conferido por
+  sintaxe (função temporária numa transação desfeita), não executado — nesta
+  base as guardas por nome já respondem antes da marca. O caminho da cópia
+  (base vazia → instalador → `nova_operacao_v1` → atualização) **não foi
+  percorrido nesta sessão**: criar um projeto Supabase novo é conta do Davi.
+  A primeira cópia real é o teste desse caminho.
+
+### O que ficou com o Davi
+
+- **Contrato e licença** (o fim do 11). Nada disso é código.
+- **A esteira do lead scoring de venda** (`pontuacao_venda_v1.sql`) é desta
+  operação — produtos e degraus. É a maior adaptação por cópia, e é
+  programação.
+- **O Worker `em`** continua com três linhas fixas (domínio, projeto, painel),
+  documentadas no 11 em vez de parametrizadas: mexer nele é republicar a
+  cara pública de todos os links, e desta rede o domínio é barrado pelo
+  filtro — não daria para provar o resultado.
+- **A landing** assina com o WhatsApp e o Instagram de quem construiu; numa
+  cópia, é decisão dele manter ou trocar.
+- Há dois arquivos `docs/10-*` (`CRIAR-UMA-CAPTACAO` e `PLANO-SEGURANCA`);
+  o segundo não vai para o espelho, então o índice público não vê a colisão.
 
 ---
 
@@ -55,9 +142,15 @@ estavam, e quem for procurar tem de procurar por eles:
 - os nomes das **8 automações `[RESSOAR] …`** — e este tem um motivo forte: as
   migrações que as criam têm guarda **por nome**, então renomear a linha viva
   sem editar a guarda faria o instalador criar uma **duplicata ativa**;
-- o projeto do Cloudflare Pages **`ressoa`** e o `ressoa-2zl.pages.dev` (alvo do
-  deploy), os repositórios no GitHub, as variáveis `RESSOA_EMAIL_*` e o caminho
-  do webhook no n8n.
+- os repositórios no GitHub, as variáveis `RESSOA_EMAIL_*` e o caminho do
+  webhook no n8n.
+
+> **Correção:** este item também listava o projeto do Cloudflare Pages
+> (`ressoa` / `ressoa-2zl.pages.dev`). Deixou de valer no mesmo dia — a mudança
+> de casa foi feita horas depois, e o alvo do deploy passou a ser o projeto
+> **`ressoar`** (`ressoar.pages.dev`). Veja "A mudança de casa no Cloudflare"
+> mais adiante. Publicar em `--project-name ressoa` falha com "The Pages project
+> does not exist".
 
 No **código** (`app/`, `scripts/`, `supabase/`) sobraram **duas** ocorrências da
 palavra antiga isolada, e as duas são corretas: o comentário em
@@ -74,7 +167,8 @@ ficaram.
 ### Seis defeitos consertados no caminho
 
 1. **A allowlist do Auth apontava para um endereço morto** (`ressoa.pages.dev`;
-   o real é `ressoa-2zl.pages.dev`).
+   o real, naquele momento, era `ressoa-2zl.pages.dev` — hoje é
+   `ressoar.pages.dev`, trocado na mudança de casa descrita adiante).
 2. **`instalar.ps1 -SoPainel` apagava a assinatura do painel.** O passo que
    regenera `app/painel/.env.local` escrevia só as duas chaves do Supabase e
    levava junto `VITE_MARCA_NOME`/`VITE_MARCA_RODAPE`. Agora a assinatura mora

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 // Caixa de escolha com busca — a mesma pele do <select> do painel, mas dá
@@ -52,7 +52,8 @@ export default function Escolher({
   const [busca, setBusca] = useState<string | null>(null);
   const [destaque, setDestaque] = useState(0);
   const [pos, setPos] = useState<{
-    esquerda: number; largura: number; topo?: number; base?: number; altura: number;
+    esquerda: number; largura: number; larguraMax: number;
+    topo?: number; base?: number; altura: number;
   } | null>(null);
 
   const caixaRef = useRef<HTMLDivElement>(null);
@@ -121,9 +122,13 @@ export default function Escolher({
       const paraCima = folgaAbaixo < 190 && folgaAcima > folgaAbaixo;
       // campo estreito (os de "por página") não pode espremer o nome das opções
       const largura = Math.max(r.width, 200);
+      // e campo estreito com opção comprida (a gaveta da automação, onde cada
+      // e-mail tem nome e assunto) pode passar da largura do campo: a lista
+      // cresce com o conteúdo até este teto e depois desliza para caber.
+      const larguraMax = Math.max(largura, Math.min(560, window.innerWidth - 16));
       setPos({
         esquerda: Math.max(8, Math.min(r.left, window.innerWidth - largura - 8)),
-        largura,
+        largura, larguraMax,
         ...(paraCima
           ? { base: window.innerHeight - r.top + 4 }
           : { topo: r.bottom + 4 }),
@@ -140,6 +145,16 @@ export default function Escolher({
       window.visualViewport?.removeEventListener("resize", medir);
     };
   }, [aberto]);
+
+  // a lista larga (mais que o campo) não pode nascer cortada na borda direita:
+  // medida a largura que o conteúdo pediu, ela desliza para a esquerda.
+  useLayoutEffect(() => {
+    if (!aberto || !pos) return;
+    const l = listaRef.current;
+    if (!l) return;
+    const cabe = Math.max(8, Math.min(pos.esquerda, window.innerWidth - l.offsetWidth - 8));
+    if (Math.abs(cabe - pos.esquerda) > 0.5) setPos({ ...pos, esquerda: cabe });
+  }, [aberto, pos]);
 
   // a opção do teclado sempre visível
   useEffect(() => {
@@ -198,7 +213,7 @@ export default function Escolher({
       {aberto && pos && createPortal(
         <div ref={listaRef} id={idLista} role="listbox" className="escolher-lista"
           style={{
-            left: pos.esquerda, width: pos.largura,
+            left: pos.esquerda, minWidth: pos.largura, maxWidth: pos.larguraMax,
             top: pos.topo, bottom: pos.base, maxHeight: pos.altura,
           }}
           // segurar o mousedown mantém o foco no campo: sem isto o clique
@@ -215,6 +230,7 @@ export default function Escolher({
                     + (i === destaque ? " destacada" : "")
                     + (String(o.valor) === atual ? " escolhida" : "")
                     + (o.desabilitado ? " apagada" : "")}
+                  title={o.detalhe ? `${o.rotulo} — ${o.detalhe}` : o.rotulo}
                   onMouseEnter={() => setDestaque(i)}
                   onClick={() => escolher(o)}>
                   <span className="tique" aria-hidden="true">

@@ -57,6 +57,11 @@ if (-not $SoPainel) {
     python scripts/run_sql_file.py $sql | Out-Null
     if ($LASTEXITCODE -ne 0) { Erro "  falhou em $sql" }
   }
+  # Os valores que sao DESTA instalacao — o endereco que o motor chama, o
+  # endereco publico do painel, os remetentes verificados — vem do .env,
+  # nunca de dentro de uma migracao (ver scripts/configurar_instancia.py).
+  python scripts/configurar_instancia.py
+  if ($LASTEXITCODE -ne 0) { Erro "  falhou ao gravar os valores desta instalacao" }
   Ok "Banco pronto"
 }
 
@@ -95,6 +100,12 @@ if (-not $SoBanco) {
   $env:MARCA_NOME = $env:VITE_MARCA_NOME
   python scripts/definir_secret.py MARCA_NOME
   Ok "Assinatura dos e-mails de conta configurada"
+  # O destino de cortesia de um link de rastreio quebrado e o endereco
+  # publico do painel (VITE_OG_URL). Grava SEMPRE, inclusive vazio — vazio,
+  # a funcao mostra uma pagina curta em vez de mandar para outra casa.
+  $env:URL_PAINEL = $env:VITE_OG_URL
+  python scripts/definir_secret.py URL_PAINEL
+  Ok "Destino dos links quebrados configurado"
   if ($env:AWS_ACCESS_KEY_ID -and $env:AWS_SECRET_ACCESS_KEY) {
     $regiao = if ($env:AWS_REGIAO) { $env:AWS_REGIAO } else { "us-east-1" }
     Push-Location app
@@ -121,8 +132,10 @@ if (-not $SoBanco) {
     # Projeto "ressoar" desde 12/08/2026: os dois dominios foram movidos para
     # ele (o Pages nao renomeia projeto, entao foi criado um novo e os dominios
     # mudaram de casa um por vez, sem janela). O projeto antigo ja foi apagado.
-    npx --yes wrangler pages project create ressoar --production-branch main 2>$null
-    npx --yes wrangler pages deploy app/painel/dist --project-name ressoar --branch main --commit-dirty=true
+    # Uma segunda instalacao pode usar outro nome: CLOUDFLARE_PAGES_PROJECT no .env.
+    $pagesProjeto = if ($env:CLOUDFLARE_PAGES_PROJECT) { $env:CLOUDFLARE_PAGES_PROJECT } else { "ressoar" }
+    npx --yes wrangler pages project create $pagesProjeto --production-branch main 2>$null
+    npx --yes wrangler pages deploy app/painel/dist --project-name $pagesProjeto --branch main --commit-dirty=true
     Ok "Painel publicado"
   } else {
     Aviso "CLOUDFLARE_ACCOUNT_ID nao preenchido — pulei a publicacao."

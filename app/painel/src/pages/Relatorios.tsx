@@ -316,7 +316,7 @@ export default function Relatorios() {
               </Ajuda>
             </h2>
             <div className="linha" style={{ marginTop: 8, flexWrap: "wrap" }}>
-              <input style={{ flex: "1 1 260px" }} placeholder="cole a página, ex.: biopatriciadomingos.com.br"
+              <input style={{ flex: "1 1 260px" }} placeholder="cole a página, ex.: suapagina.com.br/inscricoes"
                 value={utmUrl} onChange={(e) => setUtmUrl(e.target.value)} />
               <Escolher style={{ flex: "0 0 200px" }} valor={utmOrigem} aoMudar={setUtmOrigem}
                 opcoes={ORIGENS_PRONTAS.map(([v, r]) => ({ valor: v, rotulo: r }))} />

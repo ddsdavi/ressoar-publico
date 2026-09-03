@@ -177,6 +177,15 @@ input, select, textarea {
 }
 textarea { height: auto; }
 
+/* A lista aberta do <select> é desenhada pelo Windows, fora do nosso tema:
+   no escuro, a letra clara do painel herdava para um popup branco e as
+   opções ficavam invisíveis (menu "Estilo" do editor, 29/08/2026). Cor e
+   fundo explícitos na própria <option> valem em qualquer popup. */
+option { background-color: #fff; color: var(--ac-texto); }
+option:disabled { color: #8A8FA3; }
+html.tema-escuro option { background-color: #2A2333; color: #F0ECF4; }
+html.tema-escuro option:disabled { color: #8F8699; }
+
 /* Caixa de marcar e botão de opção não são campos de texto. A regra acima
    dava 100% de largura e 38px de altura a eles: o resultado era um quadrado
    gigante empurrando o texto da linha. */
@@ -221,8 +230,12 @@ input.segredo::placeholder { -webkit-text-security: none; }
 
 /* A lista mora no <body>, presa na tela: dentro da gaveta ela seria cortada
    pela rolagem, e é justamente na gaveta que se escolhe lista e tag. */
+/* Larga o quanto o conteúdo pedir (nome + assunto do e-mail cabem inteiros
+   quando há espaço), presa entre o mínimo da largura do campo e o teto que o
+   Escolher.tsx mede na tela. */
 .escolher-lista {
   position: fixed; z-index: 400; overflow-y: auto; padding: 4px;
+  width: max-content;
   background: var(--ac-superficie); border: 1px solid var(--ac-borda);
   border-radius: 8px; box-shadow: 0 6px 24px rgba(23, 0, 32, .16);
 }
@@ -231,8 +244,14 @@ input.segredo::placeholder { -webkit-text-security: none; }
   font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
   color: var(--ac-texto2);
 }
+/* Nome e texto de apoio dividem a linha enquanto os dois couberem; quando não
+   cabem — o caso do e-mail, com nome de campanha comprido e assunto inteiro —
+   o apoio desce para uma segunda linha, alinhado sob o nome. O que sobrar de
+   cada um vira reticências. Antes os dois brigavam pela mesma linha e o nome
+   era espremido até virar uma letra por linha. */
 .escolher-opcao {
-  display: flex; align-items: baseline; gap: 8px; padding: 7px 10px;
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  column-gap: 8px; row-gap: 1px; padding: 7px 10px;
   border-radius: 6px; cursor: pointer; line-height: 1.35;
   font-size: calc(13.5px * var(--escala-texto));
 }
@@ -243,10 +262,14 @@ input.segredo::placeholder { -webkit-text-security: none; }
   flex: 0 0 12px; color: var(--ac-azul);
   font-size: calc(11px * var(--escala-texto));
 }
-.escolher-opcao .rot { flex: 1; overflow-wrap: anywhere; }
+.escolher-opcao .rot {
+  flex: 1 1 auto; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .escolher-opcao .detalhe {
-  flex: 0 1 auto; color: var(--ac-texto2); text-align: right;
-  font-size: calc(12px * var(--escala-texto)); overflow-wrap: anywhere;
+  flex: 0 1 auto; min-width: 0; margin-left: 20px;   /* 20px = tique + gap */
+  color: var(--ac-texto2); font-size: calc(12px * var(--escala-texto));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .escolher-vazia {
   padding: 10px; color: var(--ac-texto2);
@@ -403,6 +426,17 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .zona-perigo-lead > h2 { color: var(--ac-vermelho); }
 .confirmacao-exclusao-lead .aviso { margin-top: 10px; }
 .acoes-exclusao-lead { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+/* No escuro a zona de perigo precisa do seu proprio fundo: --ac-vermelho2 nao e
+   redefinido no tema, entao o color-mix acima devolvia um cartao CLARO dentro do
+   painel escuro — e o rotulo “Digite EXCLUIR”, que herda a letra clara do tema,
+   sumia por cima dele. */
+html.tema-escuro .zona-perigo-lead {
+  border-color: #5A3333;
+  background: #2E1C1C;
+}
+html.tema-escuro .zona-perigo-lead > h2 { color: #F08A85; }
+html.tema-escuro .zona-perigo-lead label,
+html.tema-escuro .zona-perigo-lead .sub { color: #E4BEBB; }
 
 iframe.previa { width: 100%; height: 420px; border: 1px solid var(--ac-borda-suave); border-radius: 8px; background: #fff; }
 
@@ -517,6 +551,12 @@ html.tema-escuro input:focus, html.tema-escuro select:focus, html.tema-escuro te
   padding: 4px; height: auto; cursor: pointer;
 }
 .links-login button:hover { background: none; text-decoration: underline; }
+/* O "Criar conta" adormecido: visível, cinza e mudo. A estrutura do cadastro
+   continua inteira no código; só a porta pública fica fechada. */
+.links-login button.criar-adormecido,
+.links-login button.criar-adormecido:hover {
+  color: var(--ac-texto2); opacity: .55; cursor: not-allowed; text-decoration: none;
+}
 
 /* engrenagem de conta na topbar */
 .ac-topbar .engrenagem {
@@ -1057,6 +1097,11 @@ html.tema-escuro .abas .cont.alerta { background: #3F2020; color: #F08A85; }
 }
 html.tema-escuro .aviso.atencao { background: #3B3116; border-color: #5C4B20; color: #EDD89C; }
 html.tema-escuro .aviso.info { background: #3A2440; border-color: rgba(199,127,214,.42); color: #F0DFF6; }
+/* Grave e o vermelho acima do vermelho: some so em aviso de acao irreversivel
+   (excluir a conta). Era estilo solto na MinhaConta, e por ser inline nao tinha
+   como o tema escuro alcancar — o bloco continuava claro no painel escuro. */
+.aviso.grave { background: var(--ac-vermelho2); border-color: #F0C9C5; color: #7A1F1F; }
+html.tema-escuro .aviso.grave { background: #3F2020; border-color: #6B3535; color: #F5CFCC; }
 .aviso b.titulo { display: block; margin-bottom: 2px; font-size: calc(14px * var(--escala-texto)); }
 
 /* pendências clicáveis: pílulas de ação, não botões no meio do parágrafo */
@@ -1217,3 +1262,10 @@ html.tema-escuro .resumo-regra b { color: #D9A3E6; }
 .num-link:hover { background: none; text-decoration: underline; }
 .num-link .etiqueta { cursor: pointer; }
 html.tema-escuro .link-tabela, html.tema-escuro .num-link { color: #C77FD6; }
+
+/* ============ Pontinho de "ao vivo" ============ */
+/* Usado na lista de campanhas enquanto uma fila está saindo: pulsa devagar
+   para dizer que a tela está conferindo sozinha, sem virar pisca-pisca. */
+@keyframes pulsoVivo { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
+.pulso-vivo { animation: pulsoVivo 1.9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .pulso-vivo { animation: none; } }

@@ -2,6 +2,12 @@
 //   GET  /descadastro?e=<envio_id>  -> página de confirmação
 //   POST /descadastro?e=<envio_id>  -> marca status=2 em todas as listas do lead,
 //                                      registra evento unsubscribe e supressão global.
+//
+// A página é a cara da marca — é a última coisa que a pessoa vê antes de
+// sair, e "sair com elegância" é o que evita o botão de spam. Reescrita em
+// 28/08/2026 depois de um clique real cair numa tela crua ("Ridículo! Um
+// lixo!", palavras do dono): agora o link de teste tem resposta digna, o
+// botão explica o que faz e quem mudou de ideia sabe que basta fechar.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const supabase = createClient(
@@ -9,30 +15,104 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-const pagina = (corpo: string) => new Response(
+const ROXO = "#82308f";
+const AMBAR = "#f7b500";
+
+// o nome que assina a página vem das Configurações; sem ele, neutro
+async function nomeMarca(): Promise<string> {
+  const { data } = await supabase.from("app_config")
+    .select("valor").eq("chave", "from_name_padrao").maybeSingle();
+  return data?.valor || "Nossa equipe";
+}
+
+// O corpo vai como STREAM: quando é string (e até bytes), o gateway do
+// Supabase troca o Content-Type por text/plain ao comprimir a resposta — foi
+// assim que um lead viu código-fonte em vez de página. Stream ele repassa
+// como está, com os headers intactos.
+const emStream = (texto: string) => new Response(texto).body;
+const pagina = (titulo: string, corpo: string, marca: string) => new Response(
+  emStream(
   `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Descadastro</title>
-  <style>body{font-family:system-ui,sans-serif;background:#f6f4f1;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-  .card{background:#fff;border-radius:12px;padding:40px;max-width:420px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)}
-  button{background:#c0392b;color:#fff;border:0;border-radius:8px;padding:12px 28px;font-size:16px;cursor:pointer}
-  </style></head><body><div class="card">${corpo}</div></body></html>`,
-  { headers: { "Content-Type": "text/html; charset=utf-8" } },
+  <title>${titulo}</title>
+  <style>
+    body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f6f4f8;
+         display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px}
+    .card{background:#fff;border-radius:14px;max-width:440px;width:100%;overflow:hidden;
+          box-shadow:0 4px 24px rgba(42,34,51,.10)}
+    .faixa{background:${ROXO};color:#fff;padding:16px 26px;font-family:Georgia,serif;
+           font-size:17px;letter-spacing:.3px}
+    .miolo{padding:28px 26px 30px;text-align:center}
+    h1{font-family:Georgia,serif;font-size:22px;font-weight:normal;color:#1f1a2e;margin:0 0 10px}
+    p{font-size:15px;line-height:1.6;color:#3c3646;margin:0 0 12px}
+    .fio{height:3px;background:${AMBAR};border-radius:2px;margin:18px 0}
+    button{background:${ROXO};color:#fff;border:0;border-radius:8px;padding:13px 26px;
+           font-size:15px;font-weight:700;cursor:pointer;width:100%}
+    button:hover{filter:brightness(1.08)}
+    .mini{font-size:12.5px;color:#8a8296;margin-top:14px}
+  </style></head><body>
+  <div class="card">
+    <div class="faixa">${marca}</div>
+    <div class="miolo">${corpo}</div>
+  </div></body></html>`),
+  { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } },
 );
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const envioId = url.searchParams.get("e");
-  if (!envioId) return pagina("<h2>Link inválido</h2>");
+  const marca = await nomeMarca();
+
+  if (!envioId) {
+    return pagina("Link incompleto",
+      `<h1>Este link veio incompleto</h1>
+       <p>Abra o e-mail de novo e use o link "Não quero mais receber estes e-mails" do rodapé.</p>
+       <p class="mini">Nada foi alterado no seu cadastro.</p>`, marca);
+  }
+
+  // e-mail de TESTE (?e=teste): ensaia o caminho inteiro do lead — mostra a
+  // confirmação real e "descadastra" — sem tocar em cadastro nenhum. Antes,
+  // o teste caía em "link não está mais ativo", o que só confundia quem
+  // estava conferindo o próprio e-mail.
+  if (envioId === "teste") {
+    if (req.method === "GET") {
+      return pagina("Sair da lista",
+        `<h1>Quer parar de receber nossos e-mails?</h1>
+         <p>Com um clique você sai de todas as nossas listas. Sem perguntas,
+            sem espera — vale na hora.</p>
+         <form method="POST"><button type="submit">Não quero mais receber</button></form>
+         <p class="mini">Mudou de ideia? É só fechar esta página — nada acontece.</p>`, marca);
+    }
+    return pagina("Pronto",
+      `<h1>Pronto — você não receberá mais</h1>
+       <p>Seu endereço saiu de todas as nossas listas, valendo já.</p>
+       <div class="fio"></div>
+       <p class="mini">Este era um e-mail de teste: nenhum cadastro foi alterado.
+          No envio de verdade, o lead sai das listas neste clique.</p>`, marca);
+  }
 
   const { data: envio } = await supabase
     .from("envios").select("envio_id, lead_fk").eq("envio_id", envioId).maybeSingle();
-  if (!envio) return pagina("<h2>Link inválido ou expirado</h2>");
+
+  // link de e-mail de teste (ou muito antigo): ninguém para descadastrar —
+  // e isso merece uma explicação, não um erro seco
+  if (!envio) {
+    return pagina("Nada foi alterado",
+      `<h1>Este link não está mais ativo</h1>
+       <p>Ele veio de um e-mail de teste ou de uma mensagem muito antiga —
+          por aqui, nada foi alterado no seu cadastro.</p>
+       <div class="fio"></div>
+       <p>Se você quer parar de receber nossos e-mails, use o link do rodapé
+          da mensagem mais recente que chegou para você.</p>`, marca);
+  }
 
   if (req.method === "GET") {
-    return pagina(`<h2>Deseja parar de receber nossos e-mails?</h2>
-      <p>Você deixará de receber todas as comunicações.</p>
-      <form method="POST"><button type="submit">Sim, quero me descadastrar</button></form>`);
+    return pagina("Sair da lista",
+      `<h1>Quer parar de receber nossos e-mails?</h1>
+       <p>Com um clique você sai de todas as nossas listas. Sem perguntas,
+          sem espera — vale na hora.</p>
+       <form method="POST"><button type="submit">Não quero mais receber</button></form>
+       <p class="mini">Mudou de ideia? É só fechar esta página — nada acontece.</p>`, marca);
   }
 
   const { data: lead } = await supabase
@@ -56,5 +136,10 @@ Deno.serve(async (req) => {
       payload: { origem: "link_email", envio: envio.envio_id },
     });
   }
-  return pagina("<h2>Pronto!</h2><p>Você não receberá mais nossos e-mails.</p>");
+
+  return pagina("Pronto",
+    `<h1>Pronto — você não receberá mais</h1>
+     <p>Seu endereço saiu de todas as nossas listas, valendo já.</p>
+     <div class="fio"></div>
+     <p class="mini">Saiu sem querer? Responda qualquer e-mail nosso pedindo para voltar.</p>`, marca);
 });

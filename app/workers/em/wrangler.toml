@@ -1,0 +1,9 @@
+# em.drapatriciadomingos.com.br — links de e-mail com a cara da marca.
+# O custom_domain cria e gerencia o DNS sozinho na zona (que já é desta conta).
+name = "ressoar-em"
+main = "index.js"
+compatibility_date = "2026-08-01"
+
+routes = [
+  { pattern = "em.drapatriciadomingos.com.br", custom_domain = true },
+]

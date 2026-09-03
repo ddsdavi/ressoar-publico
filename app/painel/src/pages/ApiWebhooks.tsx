@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { avisar, confirmar } from "../components/Dialogo";
 import Ajuda from "../components/Ajuda";
 import { supabase } from "../lib/supabase";
 
@@ -90,8 +91,8 @@ export default function ApiWebhooks({ embutido }: { embutido?: boolean } = {}) {
   useEffect(() => { carregar(); }, []);
 
   async function criarHook() {
-    if (!novoHook.nome || !novoHook.url) { alert("Preencha nome e URL."); return; }
-    if (!confirm(`Criar webhook de saída para ${novoHook.url}? Cada evento assinado fará um POST real.`)) return;
+    if (!novoHook.nome || !novoHook.url) { await avisar({ titulo: "Preencha nome e URL." }); return; }
+    if (!(await confirmar({ titulo: `Criar webhook de saída para ${novoHook.url}?`, corpo: "Cada evento assinado fará um POST real.", confirmarTexto: "Criar" }))) return;
     await supabase.from("webhooks_saida").insert({
       nome: novoHook.nome, url: novoHook.url,
       eventos: novoHook.eventos.split(",").map((s) => s.trim()).filter(Boolean),
@@ -107,7 +108,7 @@ export default function ApiWebhooks({ embutido }: { embutido?: boolean } = {}) {
 
   async function alternarChaveGeral() {
     const novo = cfg.executar_webhooks === "true" ? "false" : "true";
-    if (novo === "true" && !confirm("LIGAR os webhooks das automações? A partir de agora, cada gatilho fará POST REAL para n8n/Boost. Antes, confira se algum fluxo do outro lado já faz sozinho a mesma coisa — os dois juntos é a pessoa recebendo tudo em dobro.")) return;
+    if (novo === "true" && !(await confirmar({ titulo: "LIGAR os webhooks das automações?", corpo: "A partir de agora, cada gatilho fará POST REAL para n8n/Boost. Antes, confira se algum fluxo do outro lado já faz sozinho a mesma coisa — os dois juntos é a pessoa recebendo tudo em dobro.", confirmarTexto: "Ligar" }))) return;
     await supabase.from("app_config").upsert({ chave: "executar_webhooks", valor: novo, updated_at: new Date().toISOString() });
     carregar();
   }

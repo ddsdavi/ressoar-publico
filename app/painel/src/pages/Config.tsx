@@ -17,10 +17,34 @@ const FONTES = [
   "Tahoma, Verdana, sans-serif",
 ];
 
+// Chaves que o servidor escreve e a tela só lê: contam por que a trava
+// caiu e quando. Salvar a tela não pode devolvê-las com o valor velho que
+// estava carregado na memória do navegador.
+const SO_LEITURA = new Set([
+  "envio_pausa_motivo", "envio_pausa_em", "envio_pausa_automatica", "envio_religado_em",
+]);
+
+type Represada = { rotulo: string; tipo: string; n: number; desde: string };
+type Saude = {
+  enviados?: number; bounces?: number; taxa_bounce?: number;
+  reclamacoes?: number; taxa_reclamacao?: number;
+};
+
+function quando(iso?: string) {
+  if (!iso) return "";
+  // o Postgres escreve "2026-08-30 13:07:00+00" — com espaço no lugar do T e
+  // fuso sem os minutos, que o Date() do navegador recusa calado (NaN)
+  const d = new Date(iso.trim().replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00"));
+  if (isNaN(d.getTime())) return "";
+  const hoje = new Date().toDateString() === d.toDateString();
+  const hora = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return hoje ? `hoje às ${hora}` : `${d.toLocaleDateString("pt-BR")} às ${hora}`;
+}
+
 const CORES = [
   { chave: "email_cor_titulo", rotulo: "Títulos", padrao: "#1f1a2e" },
   { chave: "email_cor_texto", rotulo: "Texto", padrao: "#3c3646" },
-  { chave: "email_cor_destaque", rotulo: "Destaque e botões", padrao: "#6b4ea8" },
+  { chave: "email_cor_destaque", rotulo: "Destaque e botões", padrao: "#82308f" },
   { chave: "email_cor_fundo", rotulo: "Fundo", padrao: "#f4f1ec" },
 ];
 
@@ -70,6 +94,9 @@ export default function Config() {
   const [capResposta, setCapResposta] = useState("");
   const [aba, setAba] = useState("email");
   const [naFila, setNaFila] = useState(0);
+  const [represada, setRepresada] = useState<Represada[]>([]);
+  const [saude, setSaude] = useState<Saude | null>(null);
+  const [erroSalvar, setErroSalvar] = useState("");
   const [gsStatus, setGsStatus] = useState<{
     app_configurado?: boolean; conectada?: boolean;
     conta?: string | null; url_retorno?: string;
@@ -94,6 +121,15 @@ export default function Config() {
     const { count } = await supabase.from("envios")
       .select("envio_id", { count: "exact", head: true }).eq("status", "queued");
     setNaFila(count ?? 0);
+
+    // e QUEM está represado: "70 na fila" não conta que são 62 pessoas
+    // que se inscreveram hoje e não receberam a confirmação
+    const { data: fila } = await supabase.rpc("fila_represada");
+    setRepresada((fila as Represada[]) ?? []);
+
+    // o número que o freio usa para decidir, na mesma tela da decisão
+    const { data: s } = await supabase.rpc("saude_envio", { p_dias: 7 });
+    setSaude((s as Saude) ?? null);
   }
   useEffect(() => { carregar(); }, []);
 
@@ -236,11 +272,36 @@ export default function Config() {
   }
 
   async function salvar() {
+    // "Salvo ✓" aparecia mesmo quando o banco recusava a gravação: a tela
+    // mentia calada. Agora só diz que salvou o que o servidor confirmou —
+    // e recarrega, porque o servidor pode ter mexido nas chaves dele.
+    setErroSalvar("");
     for (const [chave, valor] of Object.entries(cfg)) {
-      await supabase.from("app_config").upsert({ chave, valor, updated_at: new Date().toISOString() });
+      if (SO_LEITURA.has(chave)) continue;
+      const { error } = await supabase.from("app_config")
+        .upsert({ chave, valor, updated_at: new Date().toISOString() });
+      if (error) {
+        setErroSalvar(`Não deu para salvar “${chave}”: ${error.message}`);
+        return;
+      }
     }
     setSalvo(true);
     setTimeout(() => setSalvo(false), 2500);
+    carregar();
+  }
+
+  function botaoSalvar(margem = 14) {
+    return (
+      <div style={{ marginTop: margem }}>
+        <button className="primario" onClick={salvar}>{salvo ? "Salvo ✓" : "Salvar"}</button>
+        {erroSalvar && (
+          <div className="aviso" style={{ marginTop: 8 }}>
+            {erroSalvar}
+            <br />A gravação parou aí — recarregue a página para ver o que ficou salvo.
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -305,11 +366,60 @@ export default function Config() {
           </span>
         </label>
 
-        {cfg.envio_pausado === "true" && naFila > 0 && (
+        {/* Quem travou foi o freio, não você: em 30/08 a trava voltava de
+            hora em hora sem dizer nada, e a tela deixava parecer que o
+            salvamento é que não estava pegando. */}
+        {cfg.envio_pausado === "true" && cfg.envio_pausa_automatica === "true" && (
+          <div className="aviso" style={{ marginTop: 12, borderLeft: "3px solid var(--perigo)" }}>
+            <b>Esta trava foi ligada pelo sistema, não por você</b>
+            {quando(cfg.envio_pausa_em) ? ` — ${quando(cfg.envio_pausa_em)}` : ""}.
+            <br />
+            Motivo: {cfg.envio_pausa_motivo || "freio de entregabilidade"}.
+            <br /><br />
+            O freio existe para salvar a reputação do domínio: acima de 2% de
+            devolução, provedores como Gmail e a própria Amazon passam a tratar
+            todo o envio como suspeito.
+            <b> Ao destravar, ele passa a julgar só o que sair daqui pra frente</b> —
+            não te trava mais pelo lote antigo, e volta a travar se os envios
+            novos repetirem o problema.
+          </div>
+        )}
+
+        {saude && (saude.enviados ?? 0) > 0 && (
+          <div className="sub" style={{ marginTop: 10 }}>
+            Últimos 7 dias: <b>{saude.enviados}</b> enviados ·{" "}
+            <b style={{ color: (saude.taxa_bounce ?? 0) > 2 ? "var(--perigo)" : "inherit" }}>
+              {saude.bounces} devolvidos ({(saude.taxa_bounce ?? 0).toString().replace(".", ",")}%)
+            </b>{" "}
+            · {saude.reclamacoes} reclamações de spam. O freio trava acima de 2% de
+            devolução ou 0,1% de reclamação.
+            <Ajuda>
+              Devolução alta quase sempre é <b>lista velha</b>: endereço digitado
+              errado, caixa desativada, domínio que não existe mais. A conta é dos
+              últimos 7 dias, então um lote ruim continua pesando por uma semana
+              mesmo depois de corrigido.
+            </Ajuda>
+          </div>
+        )}
+
+        {naFila > 0 && (
           <div className="aviso" style={{ marginTop: 10 }}>
-            <b>{naFila.toLocaleString("pt-BR")}</b> e-mail(s) esperando na fila. Ao
-            despausar, saem a 100 por minuto — cerca de {Math.ceil(naFila / 100)} minuto(s)
-            até o último.
+            <b>{naFila.toLocaleString("pt-BR")}</b> e-mail(s) esperando na fila
+            {cfg.envio_pausado === "true" ? ", parados pela trava" : ""}:
+            <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+              {represada.map((r, i) => (
+                <li key={i}>
+                  <b>{r.n}</b> de <b>{r.rotulo}</b> ({r.tipo})
+                  {quando(r.desde) ? <> — o mais antigo desde {quando(r.desde)}</> : null}
+                </li>
+              ))}
+            </ul>
+            {cfg.envio_pausado === "true" && (
+              <div style={{ marginTop: 8 }}>
+                Ao destravar, saem a 100 por minuto — cerca de{" "}
+                {Math.ceil(naFila / 100)} minuto(s) até o último. Nada se perdeu.
+              </div>
+            )}
           </div>
         )}
 
@@ -331,9 +441,7 @@ export default function Config() {
           </div>
         )}
 
-        <div style={{ marginTop: 16 }}>
-          <button className="primario" onClick={salvar}>{salvo ? "Salvo ✓" : "Salvar"}</button>
-        </div>
+        {botaoSalvar(16)}
       </div>
       )}
 
@@ -466,9 +574,7 @@ export default function Config() {
         </label>
         <input value={cfg.base_url_tracking ?? ""}
           onChange={(e) => setCfg({ ...cfg, base_url_tracking: e.target.value })} />
-        <div style={{ marginTop: 14 }}>
-          <button className="primario" onClick={salvar}>{salvo ? "Salvo ✓" : "Salvar"}</button>
-        </div>
+        {botaoSalvar()}
       </div>
       )}
 
@@ -537,13 +643,11 @@ export default function Config() {
           </div>
           <span style={{
             display: "inline-block", padding: "11px 26px", borderRadius: 6, color: "#fff",
-            background: cfg.email_cor_destaque ?? "#6b4ea8", fontWeight: 700, fontSize: 15,
+            background: cfg.email_cor_destaque ?? "#82308f", fontWeight: 700, fontSize: 15,
           }}>Botão principal</span>
         </div>
 
-        <div style={{ marginTop: 14 }}>
-          <button className="primario" onClick={salvar}>{salvo ? "Salvo ✓" : "Salvar"}</button>
-        </div>
+        {botaoSalvar()}
       </div>
       )}
 
@@ -625,9 +729,7 @@ export default function Config() {
           </div>
         )}
 
-        <div style={{ marginTop: 18 }}>
-          <button className="primario" onClick={salvar}>{salvo ? "Salvo ✓" : "Salvar"}</button>
-        </div>
+        {botaoSalvar(18)}
 
         {mcResposta && (
           <div className={mcResposta.startsWith("✓") ? "sub" : "aviso"} style={{ marginTop: 10 }}>

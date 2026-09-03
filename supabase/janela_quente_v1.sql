@@ -33,8 +33,11 @@ begin
   -- trava parava de reconhecer o que ela mesma criou e o instalador passava a
   -- criar uma segunda automação a cada execução. Medido em 12/08/2026.
   if exists (select 1 from public.automacoes
-             where nome like '[RESSOAR] Formação — janela quente%') then
-    raise notice 'automação da janela quente já existe; nada a fazer';
+             where nome like '[RESSOAR] Formação — janela quente%')
+     -- numa cópia da plataforma o conteúdo de origem foi removido de propósito
+     -- (nova_operacao_v1.sql deixa a marca); a atualização não o traz de volta
+     or coalesce(public.cfg('conteudo_origem'), '') = 'removido' then
+    raise notice 'automação da janela quente já existe, ou foi removida de propósito; nada a fazer';
     return;
   end if;
 

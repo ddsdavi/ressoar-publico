@@ -1,0 +1,108 @@
+<!-- =====================================================================
+     MODELO BASE DOS E-MAILS — identidade visual da operação.
+
+     Por que tabela e não <div>: o Outlook renderiza e-mail com o motor do
+     Word, que ignora flexbox, grid e a maior parte do CSS moderno. Tabela
+     aninhada com largura fixa é o único layout que chega inteiro nos
+     quatro grandes (Gmail, Outlook, Apple Mail, Yahoo).
+
+     Por que estilo inline: o Gmail descarta <style> em boa parte dos
+     casos (sobretudo no app do celular). O que está no atributo style
+     sobrevive.
+
+     COMO USAR: copie este arquivo no editor de campanhas e troque só o
+     que está entre {{ }}. O rodapé de descadastro NÃO vai aqui — o motor
+     injeta sozinho antes do </body>, com o endereço da empresa e o link.
+
+     Paleta, herdada da marca:
+       roxo   #82308f   títulos, botão, detalhes
+       âmbar  #f7b500   destaque de apoio
+       tinta  #2a2233   texto corrido
+       névoa  #6b6275   texto secundário
+       fundo  #f6f4f8   moldura
+     ===================================================================== -->
+<body style="margin:0;padding:0;background-color:#f6f4f8;">
+
+  <!-- Preheader: primeira linha que aparece na lista do Gmail, ao lado do
+       assunto. Fica invisível no corpo. Sem isto, o cliente de e-mail
+       mostra o começo do HTML e o resultado é feio. -->
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f6f4f8;">
+    {{PREHEADER — uma frase curta que complementa o assunto}}
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f6f4f8;">
+    <tr>
+      <td align="center" style="padding:32px 12px;">
+
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(42,34,51,0.08);">
+
+          <!-- Faixa da marca -->
+          <tr>
+            <td style="background-color:#82308f;padding:20px 32px;">
+              <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:26px;color:#ffffff;letter-spacing:0.3px;">
+                Patrícia Domingos
+              </p>
+            </td>
+          </tr>
+
+          <!-- Corpo -->
+          <tr>
+            <td style="padding:36px 32px 8px 32px;">
+
+              <h1 style="margin:0 0 20px 0;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:34px;color:#2a2233;font-weight:normal;">
+                {{TÍTULO}}
+              </h1>
+
+              <p style="margin:0 0 18px 0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;color:#2a2233;">
+                {{Primeiro parágrafo. Escreva como quem conversa com uma
+                pessoa só — o leitor está sozinho lendo, não numa plateia.}}
+              </p>
+
+              <p style="margin:0 0 18px 0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;color:#2a2233;">
+                {{Segundo parágrafo.}}
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Botão. Em tabela, com padding no <a>: é assim que ele fica
+               clicável na área inteira também no Outlook. -->
+          <tr>
+            <td align="center" style="padding:14px 32px 32px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="background-color:#82308f;border-radius:8px;">
+                    <a href="{{LINK}}" style="display:inline-block;padding:15px 34px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:20px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">
+                      {{TEXTO DO BOTÃO}}
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Assinatura, separada por um fio âmbar -->
+          <tr>
+            <td style="padding:0 32px;">
+              <div style="height:3px;background-color:#f7b500;border-radius:2px;"></div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:22px 32px 34px 32px;">
+              <p style="margin:0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:24px;color:#6b6275;">
+                Um abraço,<br>
+                <span style="color:#2a2233;font-weight:bold;">Patrícia Domingos</span>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+        <!-- Espaço para o rodapé que o motor injeta (endereço + descadastro) -->
+        <div style="height:8px;line-height:8px;">&nbsp;</div>
+
+      </td>
+    </tr>
+  </table>
+
+</body>

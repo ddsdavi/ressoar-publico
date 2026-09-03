@@ -60,7 +60,7 @@ Quem protege os dados são as **policies** (RLS), não a ausência de grant.
 
 **Solução:** mande um User-Agent qualquer:
 ```python
-headers={"User-Agent": "ressoa/1.0", ...}
+headers={"User-Agent": "ressoar/1.0", ...}
 ```
 
 ---

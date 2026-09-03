@@ -50,6 +50,10 @@ if [ "$SO_PAINEL" = false ]; then
     printf "  → %s\n" "$(basename "$sql")"
     "$PY" scripts/run_sql_file.py "$sql" >/dev/null || { vermelho "  falhou em $sql"; exit 1; }
   done < supabase/ordem.txt
+  # Os valores que sao DESTA instalacao — o endereco que o motor chama, o
+  # endereco publico do painel, os remetentes verificados — vem do .env,
+  # nunca de dentro de uma migracao (ver scripts/configurar_instancia.py).
+  "$PY" scripts/configurar_instancia.py || { vermelho "  falhou ao gravar os valores desta instalacao"; exit 1; }
   verde "  Banco pronto"
 fi
 
@@ -88,6 +92,11 @@ EOF
   # inclusive vazio.
   MARCA_NOME="${VITE_MARCA_NOME:-}" "$PY" scripts/definir_secret.py MARCA_NOME
   verde "  Assinatura dos e-mails de conta configurada"
+  # O destino de cortesia de um link de rastreio quebrado e o endereco
+  # publico do painel (VITE_OG_URL). Grava SEMPRE, inclusive vazio — vazio,
+  # a funcao mostra uma pagina curta em vez de mandar para outra casa.
+  URL_PAINEL="${VITE_OG_URL:-}" "$PY" scripts/definir_secret.py URL_PAINEL
+  verde "  Destino dos links quebrados configurado"
   if [ -n "${AWS_ACCESS_KEY_ID:-}" ] && [ -n "${AWS_SECRET_ACCESS_KEY:-}" ]; then
     (cd app && npx --yes supabase secrets set \
         AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
@@ -116,8 +125,10 @@ EOF
     # Projeto "ressoar" desde 12/08/2026: os dois dominios foram movidos para
     # ele (o Pages nao renomeia projeto, entao foi criado um novo e os dominios
     # mudaram de casa um por vez, sem janela). O projeto antigo ja foi apagado.
-    npx --yes wrangler pages project create ressoar --production-branch main 2>/dev/null || true
-    npx --yes wrangler pages deploy app/painel/dist --project-name ressoar --branch main --commit-dirty=true
+    # Uma segunda instalacao pode usar outro nome: CLOUDFLARE_PAGES_PROJECT no .env.
+    PAGES_PROJETO="${CLOUDFLARE_PAGES_PROJECT:-ressoar}"
+    npx --yes wrangler pages project create "$PAGES_PROJETO" --production-branch main 2>/dev/null || true
+    npx --yes wrangler pages deploy app/painel/dist --project-name "$PAGES_PROJETO" --branch main --commit-dirty=true
     verde "  Painel publicado"
   else
     amarelo "  CLOUDFLARE_ACCOUNT_ID não preenchido — pulei a publicação."

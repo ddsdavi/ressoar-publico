@@ -8,7 +8,6 @@
 # quebrar, e os dois instaladores leem a mesma fonte.
 #
 # Linhas em branco e as que comecam com # sao ignoradas.
-
 supabase/replica_base.sql
 supabase/motor_v1.sql
 supabase/motor_v1_1.sql
@@ -80,6 +79,7 @@ supabase/corrige_produtos_vistos.sql
 supabase/google_sheets_v1.sql
 supabase/turmas_v2_ano_curto.sql
 supabase/exclusao_lead_v1.sql
+supabase/exclusao_leads_lote_v1.sql
 supabase/vendas_v2_importacao_segura.sql
 supabase/hotmart_v3_estados_pedido.sql
 supabase/moeda_relatorios_v1.sql
@@ -114,3 +114,20 @@ supabase/telefone_da_compra_v2_uma_assinatura.sql
 supabase/banimento_v1.sql
 supabase/desafio_planilha_v1.sql
 supabase/renomear_identificadores_ressoar_v1.sql
+supabase/manychat_v5_motor_automacoes.sql
+supabase/manychat_v6_imediato_sem_cron.sql
+supabase/seguranca_rpc_v1.sql
+supabase/teste_envio_v1.sql
+supabase/links_marca_v1.sql
+supabase/teste_fiel_v1.sql
+supabase/teste_fiel_v2.sql
+supabase/guarda_motor_v1.sql
+supabase/mesa_v1_motor.sql
+supabase/mesa_v2_guardas.sql
+supabase/teste_confirmado_v1.sql
+supabase/freio_v3_transparente.sql
+supabase/fila_represada_v1.sql
+supabase/freio_v3_1_data_iso.sql
+supabase/relatorio_automacoes_v1.sql
+supabase/qualidade_email_v1.sql
+supabase/envio_avulso_v1.sql

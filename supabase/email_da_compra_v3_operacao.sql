@@ -33,17 +33,16 @@ create policy emails_operacao_escrita on public.emails_da_operacao
   using (public.papel_atual() = 'admin')
   with check (public.papel_atual() = 'admin');
 
--- Só a caixa institucional entra aqui. Os endereços pessoais da Patrícia
--- e da equipe ficam em `emails_da_operacao_dados.local.sql`, que o
--- .gitignore segura na máquina: o espelho deste projeto é público, e
--- e-mail de pessoa não vai para repositório.
+-- Nenhum endereço entra aqui. Os e-mails da casa — a caixa institucional
+-- e os pessoais da equipe — ficam em `emails_da_operacao_dados.local.sql`,
+-- que o .gitignore segura na máquina: o espelho deste projeto é público,
+-- e-mail de pessoa não vai para repositório, e a caixa de UMA operação
+-- não deve nascer dentro de uma cópia da plataforma (até 03/09/2026 ela
+-- estava escrita aqui).
 --
 -- Quem reconstruir o banco do zero roda aquele arquivo depois deste —
 -- sem ele, uma compra feita pela equipe volta a mandar a comunicação do
 -- produto para a caixa de quem preencheu o checkout, não para a cliente.
-insert into public.emails_da_operacao (email, observacao) values
-  ('contato@drapatriciadomingos.com.br', 'caixa de contato')
-on conflict (email) do nothing;
 
 -- ------------------------------------------------------------------
 -- a escolha do endereço passa a pular os e-mails da casa

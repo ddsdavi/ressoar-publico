@@ -178,7 +178,11 @@ export default function Login() {
             {modo === "entrar" && (
               <>
                 <button type="button" onClick={() => { setModo("esqueci"); setMsg(null); }}>Esqueci minha senha</button>
-                <button type="button" onClick={() => { setModo("cadastrar"); setMsg(null); }}>Criar conta</button>
+                {/* Cadastro adormecido, a pedido do Davi: a estrutura inteira
+                    continua de pé (modo "cadastrar", formulário, signUp), mas a
+                    porta de entrada não leva a lugar nenhum — cinza, sem ação. */}
+                <button type="button" className="criar-adormecido" disabled
+                  title="Cadastro fechado no momento">Criar conta</button>
               </>
             )}
             {modo !== "entrar" && (

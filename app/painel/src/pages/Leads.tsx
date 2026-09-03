@@ -7,6 +7,16 @@ import ManyChatLeadDrawer, { type LeadParaManyChat } from "../components/ManyCha
 import Escolher from "../components/Escolher";
 import Ajuda from "../components/Ajuda";
 import { JOGADAS, ORDEM_JOGADAS, FAIXAS_VENDA } from "../lib/venda";
+import {
+  aplicarExclusaoEmLoteNoEstado,
+  confirmarExclusaoEmDuasEtapas,
+  executarExclusaoEmLote,
+  MAXIMO_LEADS_POR_EXCLUSAO,
+  podeOferecerExclusaoEmLote,
+  prepararExclusaoEmLote,
+  quantidadePermitidaParaExclusao,
+  resumirReconciliacaoExclusao,
+} from "../lib/leadsEmLote";
 
 type Lead = {
   lead_pontuacao?: { pontos: number } | { pontos: number }[] | null;
@@ -207,6 +217,13 @@ export default function Leads() {
     return () => clearTimeout(t);
   }, [busca, fLista, fStatusLista, fTag, fWhatsapp, pagina, segAvancado, POR_PAGINA, recarga]);
 
+  // Uma selecao nunca atravessa mudancas de pagina, filtro ou segmento. Assim,
+  // a confirmacao corresponde exatamente ao contexto que a pessoa esta vendo.
+  useEffect(() => {
+    setMarcados(new Set());
+    setAcaoMassa("");
+  }, [busca, fLista, fStatusLista, fTag, fWhatsapp, pagina, segAvancado, POR_PAGINA]);
+
   // ---------- segmentos ----------
   function definicaoAtual(): Record<string, unknown> {
     const def: Record<string, unknown> = {};
@@ -319,12 +336,116 @@ export default function Leads() {
   }
   const todosDaPaginaMarcados = leads.length > 0 && leads.every((l) => marcados.has(l.lead_id));
 
-  // A acao vale para quem esta marcado; sem ninguem marcado, vale para o
-  // filtro inteiro. E a diferenca entre "estes 3" e "todos os 11 mil" — por
-  // isso o texto da confirmacao sempre diz qual dos dois esta em jogo.
+  // As acoes comuns valem para quem esta marcado; sem marcados, usam o filtro
+  // inteiro. A exclusao e a excecao: exige selecao explicita e nunca usa filtro.
   async function executarAcaoMassa() {
     if (!acaoMassa) return;
     const [tipo, valor] = acaoMassa.split(":");
+
+    if (tipo === "excluir") {
+      const plano = prepararExclusaoEmLote(marcados);
+      if (!plano) {
+        alert("Marque os leads que deseja excluir. A exclusão nunca usa o filtro inteiro.");
+        setAcaoMassa("");
+        return;
+      }
+
+      const quantos = plano.ids.length;
+      if (!quantidadePermitidaParaExclusao(quantos)) {
+        alert(
+          "Por segurança, exclua no máximo " + MAXIMO_LEADS_POR_EXCLUSAO +
+          " leads por vez.",
+        );
+        return;
+      }
+      const confirmado = confirmarExclusaoEmDuasEtapas(
+        plano,
+        () => confirm(
+          "Excluir definitivamente os " + quantos + " leads marcados da Ressoar?\n\n" +
+          "Listas, tags, notas, compras, automações e históricos ligados a eles serão apagados. " +
+          "O bloqueio de e-mail será preservado e as pessoas não serão removidas do ManyChat.",
+        ),
+        (fraseEsperada) => prompt(
+          "Esta ação não pode ser desfeita.\n\nPara confirmar, digite " +
+          fraseEsperada + ":",
+        ),
+      );
+      if (!confirmado) return;
+
+      setOcupado(true);
+      const resultado = await executarExclusaoEmLote(plano, async (ids) => {
+        const { data, error, status } = await supabase.rpc("excluir_leads_ressoar", {
+          p_lead_ids: ids,
+        });
+        return {
+          data: data as { quantidade?: number } | null,
+          error: error ? { message: error.message } : null,
+          status,
+        };
+      });
+
+      if (!resultado.ok) {
+        if (resultado.tipo === "rejeitada") {
+          setOcupado(false);
+          alert("Nenhum lead foi excluído. " + resultado.erro);
+          return;
+        }
+
+        // Invalida a acao antes da consulta de conferencia e mantem o botao
+        // bloqueado ate o fim, impedindo repetir um resultado ainda incerto.
+        setAcaoMassa("");
+        setMarcados(new Set());
+        let aviso = "A conexão caiu antes de confirmar o resultado da exclusão.";
+        try {
+          const { data: aindaPresentes, error: erroConferencia } = await supabase
+            .from("tabela_1_leads")
+            .select("lead_id")
+            .in("lead_id", plano.ids);
+          if (!erroConferencia) {
+            const conferencia = resumirReconciliacaoExclusao(
+              plano.ids,
+              (aindaPresentes ?? []).map((lead) => lead.lead_id),
+            );
+            if (conferencia.todosAusentes) {
+              aviso = "A conexão caiu, mas a conferência confirmou que os " + quantos +
+                " leads não aparecem mais na base.";
+            } else if (conferencia.todosPresentes) {
+              aviso = "A conexão caiu. A conferência encontrou os " + quantos +
+                " leads ainda presentes na base.";
+            } else {
+              aviso = "A conexão caiu e a conferência encontrou resultado misto: " +
+                conferencia.quantidadeAusente + " leads não aparecem mais e " +
+                conferencia.quantidadePresente + " ainda aparecem.";
+            }
+          }
+        } catch {
+          // O aviso permanece deliberadamente incerto se a conferencia tambem falhar.
+        }
+        setMensagemPagina(aviso + " A lista foi recarregada; confira antes de tentar novamente.");
+        setRecarga((n) => n + 1);
+        setOcupado(false);
+        alert(aviso + " Não repita a exclusão antes de conferir a lista recarregada.");
+        return;
+      }
+
+      setOcupado(false);
+      const proximoEstado = aplicarExclusaoEmLoteNoEstado(
+        leads,
+        segAvancado,
+        pagina,
+        resultado.ids,
+        resultado.quantidade,
+      );
+      setLeads(proximoEstado.leads);
+      setSegAvancado(proximoEstado.segmento);
+      setPagina(proximoEstado.pagina);
+      setMensagemPagina(proximoEstado.mensagem);
+      setAcaoMassa("");
+      setMarcados(new Set());
+      setRecarga((n) => n + 1);
+      return;
+    }
+
     const naSelecao = marcados.size > 0;
     const quantos = naSelecao ? marcados.size : total;
 
@@ -788,6 +909,13 @@ export default function Leads() {
               ...listas.map((l) => ({ valor: `lista:${l.lista_id}`, rotulo: `+ lista: ${l.nome}`, grupo: "Inscrever na lista" })),
               ...listas.map((l) => ({ valor: `deslista:${l.lista_id}`, rotulo: `− lista: ${l.nome}`, grupo: "Descadastrar da lista" })),
               { valor: "suprimir:0", rotulo: "Nunca mais enviar para estes leads", grupo: "Bloquear envio" },
+              ...(podeOferecerExclusaoEmLote(ehAdmin, marcados.size)
+                ? [{
+                    valor: "excluir:0",
+                    rotulo: "Excluir definitivamente " + marcados.size + " leads",
+                    grupo: "Zona de perigo",
+                  }]
+                : []),
             ]} />
           <span style={{ flex: "0 0 auto", display: "inline-flex", alignItems: "center" }}>
             <button disabled={!acaoMassa || ocupado} onClick={executarAcaoMassa}>
@@ -801,6 +929,11 @@ export default function Leads() {
               Inscrever numa lista e aplicar tag <b>disparam as automações</b> ligadas a elas,
               inclusive as que mandam e-mail. Descadastrar não apaga o vínculo: só muda o
               status, e o histórico continua nos relatórios.
+              {ehAdmin && <>
+                <br /><br />
+                A exclusão definitiva aparece apenas quando há leads marcados e <b>nunca</b>{" "}
+                usa o filtro inteiro. Ela exige uma segunda confirmação digitada.
+              </>}
             </Ajuda>
           </span>
           <span style={{ flex: "0 0 auto", display: "inline-flex", alignItems: "center" }}>

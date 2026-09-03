@@ -13,10 +13,13 @@
 //     `formulario_api_key` do cofre (public.segredos), no cabeçalho
 //     `x-api-key` ou no campo `api_key` do corpo.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { selecionarPassosManyChatImediatos } from "./imediato.ts";
 
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  supabaseUrl,
+  serviceRoleKey,
 );
 
 const cors = {
@@ -44,6 +47,89 @@ function normWhatsapp(p: string | null | undefined): string | null {
   const resto = d.startsWith("55") ? d.slice(2) : d;
   if (new Set(resto.split("")).size <= 1) return null; // número fake
   return d;
+}
+
+async function aplicarManyChatImediato(
+  listaId: number,
+  lead: { leadId: string; email: string; nome: string | null; whatsapp: string | null },
+): Promise<{ ok: true; aplicadas: number } | { ok: false; erro: string }> {
+  const { data: automacoes, error: erroAutomacoes } = await supabase
+    .from("automacoes")
+    .select("automacao_id, ativa, gatilho")
+    .eq("ativa", true);
+  if (erroAutomacoes) return { ok: false, erro: erroAutomacoes.message };
+  if (!automacoes?.length) return { ok: true, aplicadas: 0 };
+
+  const ids = automacoes.map((automacao) => automacao.automacao_id);
+  const { data: passos, error: erroPassos } = await supabase
+    .from("automacao_passos")
+    .select("automacao_fk, ordem, tipo, config")
+    .in("automacao_fk", ids);
+  if (erroPassos) return { ok: false, erro: erroPassos.message };
+
+  const imediatos = selecionarPassosManyChatImediatos(
+    listaId,
+    automacoes,
+    passos ?? [],
+  );
+
+  const chamadas = new Set<string>();
+  for (const passo of imediatos) {
+    const chave = `${passo.tag}\u0000${passo.criar}`;
+    if (chamadas.has(chave)) continue;
+    chamadas.add(chave);
+
+    const resposta = await fetch(`${supabaseUrl}/functions/v1/manychat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({
+        lead_id: lead.leadId,
+        email: lead.email,
+        nome: lead.nome,
+        whatsapp: lead.whatsapp,
+        tag: passo.tag,
+        criar: passo.criar,
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+    const dados = await resposta.json().catch(() => ({}));
+    if (!resposta.ok || dados?.ok !== true) {
+      return {
+        ok: false,
+        erro: String(dados?.erro ?? dados?.motivo ?? "o ManyChat não confirmou a operação"),
+      };
+    }
+  }
+
+  // O passo ManyChat já terminou. A execução só entra no motor se houver
+  // algo depois dele; fluxos de um passo ficam concluídos agora mesmo.
+  const agora = new Date().toISOString();
+  const execucoes = imediatos.map((passo) => passo.proximoPasso == null ? {
+    automacao_fk: passo.automacaoId,
+    lead_fk: lead.leadId,
+    passo_atual: passo.passoManyChat + 1,
+    status: "concluida",
+    agendado_para: agora,
+    finalizado_em: agora,
+    contexto: { manychat_imediato: true },
+  } : {
+    automacao_fk: passo.automacaoId,
+    lead_fk: lead.leadId,
+    passo_atual: passo.proximoPasso,
+    status: "em_andamento",
+    agendado_para: agora,
+    contexto: { manychat_imediato: true },
+  });
+  if (execucoes.length) {
+    const { error } = await supabase.from("automacao_execucoes").insert(execucoes);
+    if (error) console.error("ManyChat confirmado; histórico da automação falhou:", error.message);
+  }
+
+  return { ok: true, aplicadas: imediatos.length };
 }
 
 const escapar = (s: string) =>
@@ -225,6 +311,10 @@ Deno.serve(async (req) => {
   }
 
   // 3) lista, tag e campos (os triggers do banco disparam as automações)
+  if (!leadId) {
+    return new Response(JSON.stringify({ erro: "não foi possível identificar o cadastro" }),
+      { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+  }
   if (listaId) {
     await supabase.from("lead_listas").upsert(
       { lead_fk: leadId, lista_fk: listaId, status: 1, source: "form:" + (slug ?? "api") },
@@ -248,6 +338,21 @@ Deno.serve(async (req) => {
       dados: { ...juntos, ...((abertos as Record<string, string>) ?? {}) },
       updated_at: new Date().toISOString(),
     });
+  }
+
+  // Uma automação composta exclusivamente por manychat_tag roda dentro
+  // desta mesma requisição. Primeiro preservamos todos os dados na Ressoar;
+  // depois esperamos a confirmação externa. O cron fica só como retentativa.
+  if (listaId) {
+    const manychat = await aplicarManyChatImediato(listaId, {
+      leadId, email, nome, whatsapp,
+    });
+    if (!manychat.ok) {
+      return new Response(JSON.stringify({
+        erro: "Cadastro recebido na Ressoar, mas o ManyChat não confirmou: " + manychat.erro,
+        lead_id: leadId,
+      }), { status: 502, headers: { ...cors, "Content-Type": "application/json" } });
+    }
   }
 
   if (redirect && /^https?:\/\//.test(redirect)) return Response.redirect(redirect, 302);

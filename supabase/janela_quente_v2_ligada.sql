@@ -151,6 +151,12 @@ declare
 begin
   select automacao_id into v_auto from public.automacoes
   where nome like '[RESSOAR] Formação — janela quente%';
+  if v_auto is null and coalesce(public.cfg('conteudo_origem'), '') = 'removido' then
+    -- cópia da plataforma: o conteúdo de origem foi removido de propósito
+    -- (nova_operacao_v1.sql). Não há o que ligar, e não é erro.
+    raise notice 'janela quente removida de propósito nesta instalação; nada a fazer';
+    return;
+  end if;
   if v_auto is null then
     raise exception 'automação da janela quente não encontrada';
   end if;

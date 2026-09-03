@@ -107,7 +107,7 @@ As duas contas são gratuitas.
 
 ```bash
 git clone <endereço-do-repositório>
-cd ressoa
+cd ressoar
 cp .env.example .env      # preencha as chaves — cada linha diz onde achar
 ./instalar.sh             # Linux e Mac
 ```
@@ -144,13 +144,14 @@ Passo a passo detalhado: **[docs/01-INSTALAR.md](docs/01-INSTALAR.md)**
 | **[08 — Recuperação e conteúdo](docs/08-RECUPERACAO-E-CONTEUDO.md)** | carrinho abandonado, contador regressivo, módulos salvos e ManyChat |
 | **[09 — Onde parei](docs/09-ONDE-PAREI.md)** | **comece por aqui:** estado atual, travas ligadas e o que está pendente |
 | **[10 — Criar uma captação](docs/10-CRIAR-UMA-CAPTACAO.md)** | a receita do zero: lista, tag, formulário, ManyChat e planilha |
+| **[11 — Duplicar e vender](docs/11-DUPLICAR-E-VENDER.md)** | uma segunda instalação para outra operação: de onde sai a cópia, o que trocar e o que decidir antes de vender |
 
 ---
 
 ## Como está organizado
 
 ```
-ressoa/
+ressoar/
 ├─ instalar.sh · instalar.ps1   o instalador de um comando
 ├─ .env.example                 todas as chaves, com onde achar cada uma
 │
@@ -253,4 +254,6 @@ uma — foi assim que 14 telefones reais foram pegos num arquivo de teste em 06/
 
 ## Licença
 
-Uso interno. Não há licença aberta.
+Uso interno. Não há licença aberta. Uma segunda instalação para outra operação é
+licenciada por contrato, instalação a instalação — o roteiro técnico está em
+[docs/11-DUPLICAR-E-VENDER.md](docs/11-DUPLICAR-E-VENDER.md).

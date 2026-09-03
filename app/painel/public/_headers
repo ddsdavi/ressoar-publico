@@ -17,6 +17,22 @@
 # index velho, que pedia um bundle já inexistente.
 /*
   Cache-Control: no-cache, must-revalidate
+  # Cabeçalhos de segurança (auditoria 25/08/2026). O painel loga usuários e
+  # mostra PII de leads; a sessão fica no localStorage (por-origem, visível
+  # dentro de um iframe). Sem estes, um site atacante embute o painel num
+  # iframe e induz o admin logado a clicar em ações destrutivas (clickjacking).
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  # CSP em modo REPORT-ONLY (auditoria 25/08/2026): observa, NAO bloqueia — nao
+  # quebra nada. Serve para afinar a allowlist (violacoes aparecem no console
+  # do navegador) antes de promover para enforce. A protecao real de hoje ja e
+  # o frame-ancestors acima + React/iframe-sandbox (nao ha sink de XSS). Nao
+  # nomeia a operacao (espelho publico): telemetria em subdominio proprio (ex.
+  # Stape) aparece como violacao esperada e entra so quando for para enforce.
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://static.cloudflareinsights.com https://www.google.com https://*.doubleclick.net https://*.on.aws; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://*.analytics.google.com https://www.google.com https://*.doubleclick.net https://connect.facebook.net https://www.facebook.com https://*.on.aws https://static.cloudflareinsights.com; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
 
 # Os arquivos com nome versionado são a exceção: o nome muda quando o conteúdo
 # muda, então podem ficar guardados para sempre. Regra mais específica vence.

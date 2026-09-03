@@ -13,11 +13,53 @@
 // Bounce permanente e reclamação alimentam a supressão automaticamente,
 // igual ao caminho do Resend.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { createVerify, X509Certificate } from "node:crypto";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
+
+// Verificação de assinatura do SNS (auditoria 25/08/2026). Toda mensagem do
+// SNS já vem assinada por um certificado X.509 da AWS — não precisa de segredo
+// nem de reconfiguração. Sem verificar, qualquer um POSTava um "Complaint"/
+// "Bounce" forjado e envenenava a supressão (bloqueava uma vítima só sabendo
+// o e-mail dela). A assinatura cobre estes campos, nesta ordem exata:
+const CAMPOS_ASSINATURA: Record<string, string[]> = {
+  Notification: ["Message", "MessageId", "Subject", "Timestamp", "TopicArn", "Type"],
+  SubscriptionConfirmation: ["Message", "MessageId", "SubscribeURL", "Timestamp", "Token", "TopicArn", "Type"],
+  UnsubscribeConfirmation: ["Message", "MessageId", "SubscribeURL", "Timestamp", "Token", "TopicArn", "Type"],
+};
+
+type ResultadoAssinatura = "valida" | "invalida" | "sem_verificacao";
+
+async function verificarAssinaturaSNS(sns: Record<string, any>): Promise<ResultadoAssinatura> {
+  const url = sns.SigningCertURL ?? sns.SigningCertUrl ?? "";
+  // host DEVE ser da AWS — condição controlável pelo atacante ⇒ trata como forja
+  if (!/^https:\/\/sns\.[a-z0-9-]+\.amazonaws\.com\//.test(url)) return "invalida";
+  const campos = CAMPOS_ASSINATURA[sns.Type as string];
+  if (!campos || !sns.Signature) return "invalida";
+  let canonico = "";
+  for (const k of campos) {
+    if (sns[k] !== undefined && sns[k] !== null) canonico += k + "\n" + sns[k] + "\n";
+  }
+  try {
+    const pem = await (await fetch(url)).text();
+    const cert = new X509Certificate(pem);
+    const algo = String(sns.SignatureVersion) === "2" ? "RSA-SHA256" : "RSA-SHA1";
+    const v = createVerify(algo);
+    v.update(canonico, "utf8");
+    v.end();
+    return v.verify(cert.publicKey, sns.Signature, "base64") ? "valida" : "invalida";
+  } catch (e) {
+    // Erro de runtime (ex.: node:crypto indisponível) NÃO é controlável pelo
+    // atacante — degrada para o comportamento antigo, com aviso, em vez de
+    // derrubar todo o processamento de bounce. Forja (assinatura inválida ou
+    // host fora da AWS) já foi barrada acima.
+    console.error("não foi possível verificar assinatura SNS (degradando):", String(e));
+    return "sem_verificacao";
+  }
+}
 
 const MAPA: Record<string, string> = {
   Send: "sent",
@@ -50,6 +92,13 @@ Deno.serve(async (req) => {
     sns = JSON.parse(bruto);
   } catch {
     return new Response("corpo inválido", { status: 400 });
+  }
+
+  // ---- 0. autenticidade: a mensagem foi mesmo assinada pela AWS? ----
+  const veredito = await verificarAssinaturaSNS(sns);
+  if (veredito === "invalida") {
+    console.warn("mensagem SNS com assinatura inválida — recusada");
+    return new Response("assinatura inválida", { status: 401 });
   }
 
   // ---- 1. confirmação da inscrição no tópico ----

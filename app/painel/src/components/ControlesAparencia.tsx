@@ -20,11 +20,12 @@ export function aplicarPreferencias() {
   document.documentElement.style.setProperty("--escala-texto", String(NIVEIS_TEXTO[escala]?.[0] ?? 1));
 }
 
-export default function ControlesAparencia() {
+// O seletor de tema mora num componente próprio porque a landing usa SÓ ele:
+// lá a escala de fonte não teria efeito (a página não usa --escala-texto),
+// e controle que não faz nada só ensina a pessoa a desconfiar dos outros.
+export function GrupoTema() {
   const [tema, setTema] = useState<string>(() => localStorage.getItem("ressoar-tema") ?? "sistema");
   const [temaAberto, setTemaAberto] = useState(false);
-  const [escala, setEscala] = useState<number>(() => Number(localStorage.getItem("ressoar-escala") ?? 3));
-  const [escalaAberta, setEscalaAberta] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -37,6 +38,25 @@ export default function ControlesAparencia() {
     localStorage.setItem("ressoar-tema", tema);
     return () => mq.removeEventListener("change", aplicar);
   }, [tema]);
+
+  return (
+    <div className="tema-grupo">
+      {!temaAberto ? (
+        <button className="ativo" title={`${ICONES_TEMA[tema][1]} — clique para trocar`}
+          onClick={() => setTemaAberto(true)}>{ICONES_TEMA[tema][0]}</button>
+      ) : (
+        (["claro", "escuro", "sistema"] as const).map((t) => (
+          <button key={t} className={tema === t ? "ativo" : ""} title={ICONES_TEMA[t][1]}
+            onClick={() => { setTema(t); setTemaAberto(false); }}>{ICONES_TEMA[t][0]}</button>
+        ))
+      )}
+    </div>
+  );
+}
+
+export default function ControlesAparencia() {
+  const [escala, setEscala] = useState<number>(() => Number(localStorage.getItem("ressoar-escala") ?? 3));
+  const [escalaAberta, setEscalaAberta] = useState(false);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--escala-texto", String(NIVEIS_TEXTO[escala]?.[0] ?? 1));
@@ -60,17 +80,7 @@ export default function ControlesAparencia() {
           ))
         )}
       </div>
-      <div className="tema-grupo">
-        {!temaAberto ? (
-          <button className="ativo" title={`${ICONES_TEMA[tema][1]} — clique para trocar`}
-            onClick={() => setTemaAberto(true)}>{ICONES_TEMA[tema][0]}</button>
-        ) : (
-          (["claro", "escuro", "sistema"] as const).map((t) => (
-            <button key={t} className={tema === t ? "ativo" : ""} title={ICONES_TEMA[t][1]}
-              onClick={() => { setTema(t); setTemaAberto(false); }}>{ICONES_TEMA[t][0]}</button>
-          ))
-        )}
-      </div>
+      <GrupoTema />
     </>
   );
 }

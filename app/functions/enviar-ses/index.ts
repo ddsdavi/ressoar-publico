@@ -47,27 +47,65 @@ function cabecalhoUtf8(texto: string): string {
     : `=?UTF-8?B?${b64(enc.encode(texto))}?=`;
 }
 
+// Versão em texto puro derivada do HTML: e-mail só-HTML pontua contra nos
+// filtros de spam (regra MIME_HTML_ONLY) e não lê em relógio/assistente.
+function htmlParaTexto(html: string): string {
+  let t = html;
+  t = t.replace(/<style[\s\S]*?<\/style>/gi, "");
+  t = t.replace(/<div style="display:none[\s\S]*?<\/div>/gi, ""); // pré-cabeçalho oculto
+  t = t.replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_tudo, url, texto) => {
+    const limpo = texto.replace(/<[^>]+>/g, "").trim();
+    const u = url.replace(/&amp;/g, "&");
+    if (!limpo) return u;
+    return u.startsWith("http") ? `${limpo} ( ${u} )` : limpo;
+  });
+  t = t.replace(/<(br|\/p|\/h[1-6]|\/tr|\/div|\/li)\b[^>]*>/gi, "\n");
+  t = t.replace(/<li\b[^>]*>/gi, "• ");
+  t = t.replace(/<[^>]+>/g, "");
+  t = t.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&middot;/g, "·").replace(/&#847;|&zwnj;/g, "");
+  return t.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// quebra de linha em campo de cabeçalho é injeção de MIME — nunca passa
+const semQuebra = (v: string) => (v ?? "").replace(/[\r\n]+/g, " ").trim();
+
 function montarMime(p: Record<string, string>): string {
   const de = p.de_nome
-    ? `${cabecalhoUtf8(p.de_nome)} <${p.de_email}>`
-    : p.de_email;
+    ? `${cabecalhoUtf8(semQuebra(p.de_nome))} <${semQuebra(p.de_email)}>`
+    : semQuebra(p.de_email);
+  const divisa = `=_ressoar_${crypto.randomUUID().slice(0, 8)}`;
   const linhas = [
     `From: ${de}`,
-    `To: ${p.para}`,
-    `Subject: ${cabecalhoUtf8(p.assunto)}`,
-    p.reply_to ? `Reply-To: ${p.reply_to}` : "",
+    `To: ${semQuebra(p.para)}`,
+    `Subject: ${cabecalhoUtf8(semQuebra(p.assunto))}`,
+    p.reply_to ? `Reply-To: ${semQuebra(p.reply_to)}` : "",
     `X-Entity-Ref-ID: ${p.envio_id}`,
     // exigência do Gmail/Yahoo para remetente em massa (fev/2024)
     `List-Unsubscribe: <${p.url_descadastro}>`,
     "List-Unsubscribe-Post: List-Unsubscribe=One-Click",
     "MIME-Version: 1.0",
+    `Content-Type: multipart/alternative; boundary="${divisa}"`,
+  ].filter(Boolean);
+  // corpos em base64 quebrado de 76 em 76 (limite de linha do SMTP)
+  const b76 = (s: string) => b64(enc.encode(s)).replace(/(.{76})/g, "$1\r\n");
+  const corpo = [
+    `--${divisa}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    b76(htmlParaTexto(p.html)),
+    `--${divisa}`,
     'Content-Type: text/html; charset="UTF-8"',
     "Content-Transfer-Encoding: base64",
     "",
-  ].filter(Boolean);
-  // corpo em base64 quebrado de 76 em 76 (limite de linha do SMTP)
-  const corpo = b64(enc.encode(p.html)).replace(/(.{76})/g, "$1\r\n");
-  return linhas.join("\r\n") + "\r\n" + corpo;
+    b76(p.html),
+    `--${divisa}--`,
+  ].join("\r\n");
+  // a linha EM BRANCO entre cabeçalhos e corpo é obrigatória no MIME — sem
+  // ela o Content-Type da primeira parte vira "cabeçalho duplicado" no SES
+  return linhas.join("\r\n") + "\r\n\r\n" + corpo;
 }
 
 async function assinar(corpo: string): Promise<Record<string, string>> {

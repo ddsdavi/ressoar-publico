@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import Escolher from "./Escolher";
+import { avisar } from "./Dialogo";
 import Ajuda from "./Ajuda";
 
 // Quadro visual da automação — a mesma leitura do ActiveCampaign: o gatilho
@@ -486,7 +487,7 @@ export default function FluxoAutomacao({
     const d = await chamarMC({ acao: "criar_tag", tag: nome });
     setCriandoMC(null);
     if (d.ok) await carregarTagsMC();
-    else alert("Não deu para criar: " + JSON.stringify(d.detalhe ?? d.erro ?? d));
+    else await avisar({ titulo: "Não deu para criar a tag", corpo: JSON.stringify(d.detalhe ?? d.erro ?? d) });
   }
   const [adicionando, setAdicionando] = useState(false);
 
