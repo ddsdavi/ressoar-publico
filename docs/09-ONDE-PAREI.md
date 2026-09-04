@@ -4,11 +4,46 @@ Documento de passagem. Serve para quem pegar este projeto do zero — outra
 sessão, outra conta, outra pessoa — saber em que pé está sem ter que
 reconstituir a conversa.
 
-Última atualização: 03/09/2026.
+Última atualização: 04/09/2026.
 
 ---
 
-## Tudo no GitHub, e um kit para duplicar a plataforma (03/09/2026)
+## O envio está pausado desde 31/08, e o remédio continua parado (04/09/2026)
+
+Achado ao rodar o conferidor novo (abaixo) — não era o assunto do dia, mas é o
+estado real da operação, e precisa de decisão sua.
+
+| | |
+|---|---|
+| Desde | **31/08, 06:07** da manhã |
+| Quem pausou | o **freio de entregabilidade**, sozinho — não foi ninguém |
+| Motivo gravado | "devolução em 2,83% (limite 2%)" |
+| Devolução hoje (7 dias) | **3,95%** — 64 devoluções em 1.621 envios (47 leves, 17 duras) |
+| Retido na fila | **663 e-mails**: 611 da campanha "Black 2026 - Inscritos" e 52 da automação "Lives Semanais" |
+
+A campanha foi disparada **um minuto depois** da pausa (06:08), então ela não
+chegou a sair: está inteira esperando. Nada se perdeu — é o comportamento
+projetado da fila.
+
+**A causa é a mesma de 30/08, e o remédio já está escrito.** Das 64 devoluções,
+**49 vieram de endereços com domínio impossível** (`gmail.con`, `gmail.comm`,
+`hotiimail.com`…), erros de digitação herdados da migração do ActiveCampaign.
+O roteiro `supabase/higiene_dominios_v1.sql` existe desde 30/08 para jogar
+esses endereços na supressão, e continua **não aplicado**, esperando decisão —
+está escrito no cabeçalho dele. Hoje ele suprimiria **25** endereços; uma
+varredura mais larga acha **30** ainda fora da supressão.
+
+Enquanto eles continuarem na base, todo disparo volta a subir a taxa e o freio
+volta a pausar (já pausou em 29, 30 e 31/08). Religar sem limpar é repetir o
+ciclo — e cada rodada dessas machuca a reputação do domínio, que é o ativo que
+demora meses para recuperar.
+
+**Não mexi em nada:** não apliquei a higiene e não religuei o envio. As duas
+coisas são decisão sua, e a segunda manda 663 e-mails.
+
+---
+
+## Tudo no GitHub, e um kit para duplicar a plataforma (03–04/09/2026)
 
 Pedido do dia: "tudo suba pros githubs" e "tudo que for preciso pra eu poder
 duplicar esse projeto e vender pra outra pessoa". O roteiro completo da cópia
@@ -78,6 +113,37 @@ mudou, o que foi para a produção e o que ficou de decisão.
   percorrido nesta sessão**: criar um projeto Supabase novo é conta do Davi.
   A primeira cópia real é o teste desse caminho.
 
+### O conferidor de instalação (04/09)
+
+`python scripts/conferir_instalacao.py` responde, num comando, se uma
+instalação está inteira e **não aponta para nenhuma outra**. Não altera nada:
+lê o banco, a lista de funções publicadas e os **nomes** dos segredos (nenhum
+valor é impresso nem trafega). Sete blocos, cada linha marcada `GRAVE`
+(não envie e-mail antes de resolver; sai com erro), `ATENCAO` ou `ok`:
+
+1. **De quem é a instalação** — `url_api_interna` bate com o `SUPABASE_URL` do
+   `.env`? `base_url_tracking` preenchido e não apontando para o Supabase de
+   outro projeto? `url_painel` igual ao `VITE_OG_URL`?
+2. **O remetente** — a lista de verificados existe, e o remetente padrão está
+   nela? (Fora dela, nenhuma campanha sai.)
+3. **Conteúdo da operação de origem** — automações e mensagens semeadas pelas
+   migrações, a marca `conteudo_origem`, a tag do ManyChat, os endereços da
+   casa. Numa base vazia com automação de origem **ativa**, é `GRAVE`.
+4. **A esteira do lead scoring** — extrai os produtos citados dentro de
+   `recalcular_pontuacao_venda` e confere se esta base já vendeu cada um. É o
+   aviso automático da adaptação que o [11](11-DUPLICAR-E-VENDER.md) chama de
+   maior por cópia.
+5. **O motor e o envio** — relógios do pg_cron ativos, provedor com chave,
+   `envio_so_para` (a trava de teste, que retém todo o resto), pausa e fila,
+   endereço físico do rodapé legal.
+6. **Funções e segredos** — compara `app/functions/` com o que está publicado
+   e confere os segredos que **esta** configuração exige (SES pede uns, Resend
+   pede outros).
+7. **A porta** — cadastro fechado no Auth e o endereço do painel na allowlist.
+
+Rodado contra esta operação hoje: **nenhum grave**, e a única atenção foi o
+envio pausado — o achado da seção acima. Foi assim que ele apareceu.
+
 ### O que ficou com o Davi
 
 - **Contrato e licença** (o fim do 11). Nada disso é código.
@@ -92,6 +158,7 @@ mudou, o que foi para a produção e o que ficou de decisão.
   cópia, é decisão dele manter ou trocar.
 - Há dois arquivos `docs/10-*` (`CRIAR-UMA-CAPTACAO` e `PLANO-SEGURANCA`);
   o segundo não vai para o espelho, então o índice público não vê a colisão.
+- **A fila e a higiene de domínios** (a seção acima): duas decisões suas.
 
 ---
 

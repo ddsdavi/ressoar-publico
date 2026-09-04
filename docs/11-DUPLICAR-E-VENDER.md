@@ -190,15 +190,29 @@ as contas do comprador, e cada uma testada como a doc manda.
 
 ### 11. A prova
 
-Antes de entregar, no SQL Editor do projeto **dele**:
+Um comando pergunta tudo de uma vez, na pasta da cópia e com o `.env` dela
+carregado:
 
-```sql
-select chave, valor from public.app_config
- where chave in ('url_api_interna', 'url_painel', 'remetentes_verificados', 'base_url_tracking');
--- tudo com o projeto, o domínio e o remetente DELE
-
-select count(*) from public.automacoes where nome like '[RESSOAR]%';   -- 0
+```bash
+python scripts/conferir_instalacao.py
 ```
+
+Ele não altera nada: lê o banco, a lista de funções publicadas e os **nomes**
+dos segredos (nenhum valor é impresso). Sai em sete blocos — de quem é a
+instalação, o remetente, o conteúdo da operação de origem, a esteira do lead
+scoring, o motor e o envio, funções e segredos, a porta de entrada — e
+classifica cada linha:
+
+| | |
+|---|---|
+| `GRAVE` | não envie e-mail antes de resolver; o programa termina com erro |
+| `ATENCAO` | resolva antes de entregar |
+| `ok` | conferido |
+
+É ele que pega o que ninguém vê a olho nu: o motor apontando para o Supabase
+de outra casa, o remetente fora da lista de verificados (nenhuma campanha
+sairia), as automações da operação de origem ainda ativas numa base nova, um
+segredo que falta, o cadastro aberto no Auth.
 
 E de fora:
 

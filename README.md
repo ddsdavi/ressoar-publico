@@ -180,6 +180,7 @@ ressoar/
 │     └─ src/pages/             uma tela por arquivo
 │
 ├─ scripts/                     migração e manutenção (Python)
+│  └─ conferir_instalacao.py    "esta instalação está inteira, e só dela?"
 └─ docs/                        a documentação
 ```
 
