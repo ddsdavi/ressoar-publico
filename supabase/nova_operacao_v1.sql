@@ -25,6 +25,8 @@
 --     junto, por cascata);
 --   · as mensagens que essas automações usavam;
 --   · a tag do ManyChat da operação de origem (manychat_tag_esc);
+--   · a esteira do lead scoring (as três chaves esteira_*), que nasce com
+--     os produtos da casa de origem;
 --   · os endereços "da casa" (emails_da_operacao) — versões anteriores da
 --     migração traziam um.
 --
@@ -87,6 +89,14 @@ begin
 
   update public.app_config set valor = '' where chave = 'manychat_tag_esc';
   delete from public.emails_da_operacao;
+
+  -- A esteira do lead scoring nasce com os produtos da operação de origem
+  -- (esteira_configuravel_v1 os semeia). Numa cópia isso classificaria a
+  -- base do comprador pela casa de outro; vazia, ninguém é classificado
+  -- errado — só ninguém é classificado, até ele preencher (docs/11, passo 6).
+  update public.app_config set valor = ''
+   where chave in ('esteira_produto_principal', 'esteira_produtos_topo',
+                   'esteira_lista_aquecimento');
 
   -- a marca que faz as migrações de conteúdo pularem daqui em diante
   insert into public.app_config (chave, valor) values ('conteudo_origem', 'removido')

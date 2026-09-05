@@ -134,3 +134,6 @@ supabase/envio_avulso_v1.sql
 supabase/supressao_dominio_invalido_v1.sql
 supabase/dominio_impossivel_v1.sql
 supabase/esteira_configuravel_v1.sql
+supabase/alerta_produto_sem_regra_v1.sql
+supabase/gate_leitura_v1.sql
+supabase/gate_leitura_v2_aplicado.sql

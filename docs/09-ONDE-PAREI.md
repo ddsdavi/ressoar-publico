@@ -83,7 +83,25 @@ A guarda que não pode sair: campo vazio **não** vira `ilike '%%'`. Sem ela, um
 configuração em branco casaria com os 11.221 registros de compra e jogaria a
 base inteira no degrau errado, sem erro nenhum na tela.
 
-### 5. Uma armadilha nova, a de número 45
+### 5. O resto do "faz tudo"
+
+| O quê | Onde ficou |
+|---|---|
+| **Worker dos links** | os dois endereços saíram do código e viraram `[vars]` no `wrangler.toml`; publicado e provado em produção nos cinco caminhos, inclusive o `enviar-ses` seguindo barrado |
+| **Produtos sem regra** | três ganharam regra (`operacao/regras_produtos_3.sql`): o bônus Harmonização de Ambientes, o Encontro presencial e o Código da Casa Frequencial. Cobertura das vendas de 30 dias: de 82% para 99,3% |
+| **Alerta de produto sem regra** | `alerta_produto_sem_regra_v1.sql`: relógio diário, alerta no painel com nome e volume. Já disparou, apontando os quatro que restam |
+| **Fase 2.1 da segurança** | `gate_leitura()` criado e dentro das oito funções que o painel chama e que agem. Faltam 31 de leitura em `language sql` — ver [10](10-PLANO-SEGURANCA.md) |
+| **Termos para o advogado** | `operacao/2026-09-04-termos-para-o-advogado.md`, fora dos repositórios |
+
+**O que ficou bloqueado, e por quê:** o nó "Formatar telefone" do n8n. O Chrome
+desta máquina foi conferido (mesmo IP), mas a sessão do n8n está **deslogada** —
+`/rest/workflows/...` responde 401 e a tela redireciona para `/signin`. Não faço
+login com a senha de ninguém. Para eu corrigir os dois fluxos
+(`ySkiGv6PY1l3TPRu` e `d9ZmqxI1vbj80GHb`), basta o Davi entrar no n8n neste
+Chrome e me avisar. Enquanto isso, a regra antiga continua lá: ela põe o nono
+dígito em telefone fixo, o que inventa o número de outra pessoa.
+
+### 6. Uma armadilha nova, a de número 45
 
 `supressao.email` é `citext` e `tabela_1_leads.email` é `text`. Comparar as duas
 colunas com `=` cru volta a diferenciar maiúsculas, e quatro endereços já

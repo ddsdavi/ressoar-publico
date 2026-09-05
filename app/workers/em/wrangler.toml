@@ -7,3 +7,12 @@ compatibility_date = "2026-08-01"
 routes = [
   { pattern = "em.drapatriciadomingos.com.br", custom_domain = true },
 ]
+
+# Os dois endereços DESTA instalação. Numa cópia da plataforma, troque os
+# três — o pattern acima, e estes dois — antes de publicar; o código não
+# cita endereço nenhum (docs/11-DUPLICAR-E-VENDER.md, passo 9).
+[vars]
+# as Edge Functions do projeto Supabase desta instalação
+ORIGEM_FUNCOES = "https://hkkuhquzpapnitzwpkig.supabase.co/functions/v1"
+# para onde o lead vai quando o link de rastreio chega quebrado
+URL_PAINEL = "https://ressoar.drapatriciadomingos.com.br/"

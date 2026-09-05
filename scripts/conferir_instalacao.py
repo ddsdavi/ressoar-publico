@@ -81,7 +81,8 @@ cfg = {linha["chave"]: (linha["valor"] or "")
          'url_api_interna','url_painel','base_url_tracking','remetentes_verificados',
          'from_email_padrao','from_name_padrao','provedor_email','envio_pausado',
          'envio_so_para','envio_limite_diario','resumo_diario_para','conteudo_origem',
-         'manychat_tag_esc','endereco_fisico','resend_api_key','ses_segredo')""") or []}
+         'manychat_tag_esc','endereco_fisico','resend_api_key','ses_segredo',
+         'esteira_produto_principal','esteira_produtos_topo','esteira_lista_aquecimento')""") or []}
 
 n = (run_sql("""
   select (select count(*) from public.tabela_1_leads) as leads,
@@ -203,11 +204,18 @@ if int(n.get("emails_da_casa") or 0) > 0:
 # ------------------------------------------------ 4. a esteira do scoring
 secao("4. A esteira do lead scoring de venda")
 
+# A regua leu produtos de dentro do codigo ate 04/09/2026; hoje le da
+# configuracao (esteira_configuravel_v1). O que interessa e o mesmo: a
+# esteira desta instalacao fala dos produtos DELA? Numa copia as chaves
+# nascem com os valores da operacao de origem, e sem este aviso ninguem
+# perceberia — a tela mostraria "proxima oferta" para todo mundo errado.
 regua = run_sql("""
   with citados as (
-    select distinct m[1] as produto
-    from pg_get_functiondef('public.recalcular_pontuacao_venda'::regproc) d,
-         regexp_matches(d, 'nome_produto ilike ''%([^'']+)%''', 'g') m),
+    select btrim(x) as produto
+    from unnest(
+      string_to_array(coalesce(public.cfg('esteira_produto_principal'), ''), ',')
+      || string_to_array(coalesce(public.cfg('esteira_produtos_topo'), ''), ',')) x
+    where btrim(x) <> ''),
   vendidos as (
     select distinct nome_produto from public.tabela_4_alunos where status = 'aprovada')
   select c.produto,
@@ -215,18 +223,32 @@ regua = run_sql("""
            as vendido_aqui
   from citados c order by 1""") or []
 
+lista_aq = cfg.get("esteira_lista_aquecimento", "").strip()
+
 if not regua:
-    diz("-", "a regua nao cita nome de produto — nada a adaptar")
+    diz("ATENCAO", "a esteira nao tem produto configurado — todo lead cai em 'aquecer "
+                   "primeiro' e a coluna 'proxima oferta' nao serve para nada. Preencha "
+                   "esteira_produto_principal e esteira_produtos_topo (docs/11, passo 6)")
 else:
     fora = [r["produto"] for r in regua if not r["vendido_aqui"]]
     if not fora:
         diz("ok", "os %d produto(s) citados na regua sao vendidos nesta operacao" % len(regua))
     else:
-        diz("ATENCAO", "a regua decide a proxima oferta por %d produto(s) que esta base nunca "
-                       "vendeu: %s. Ate reescrever recalcular_pontuacao_venda, a coluna "
-                       "'proxima oferta' do Lead scoring nao vale para esta operacao "
-                       "(docs/11, 'O que continua falando desta operacao')"
+        diz("ATENCAO", "a esteira decide a proxima oferta por %d produto(s) que esta base "
+                       "nunca vendeu: %s. Numa copia isso e a configuracao da operacao de "
+                       "origem: troque as chaves esteira_* e rode "
+                       "select public.recalcular_pontuacao_venda() (docs/11, passo 6)"
             % (len(fora), ", ".join(fora)))
+
+if not lista_aq:
+    diz("-", "esteira_lista_aquecimento vazia — ninguem e classificado como 'aquecido "
+             "sem ter comprado'. So preencha se a operacao tiver uma lista assim")
+elif not (run_sql("select exists (select 1 from public.listas where lista_id = %s) as e"
+                  % int(lista_aq)) or [{}])[0].get("e"):
+    diz("ATENCAO", "esteira_lista_aquecimento aponta para a lista %s, que nao existe nesta "
+                   "instalacao" % lista_aq)
+else:
+    diz("ok", "a lista de aquecimento existe")
 
 # ---------------------------------------------------------- 5. o motor
 secao("5. O motor e o envio")

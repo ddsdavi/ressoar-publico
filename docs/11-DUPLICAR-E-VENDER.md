@@ -190,17 +190,34 @@ novo que dispara para base fria vai para o spam por meses.
 
 ### 9. Worker `em` (opcional, recomendado)
 
-Os links de e-mail com a cara da marca, em vez de `supabase.co`. Três linhas
-falam desta operação e precisam virar as do comprador:
+Os links de e-mail com a cara da marca, em vez de `supabase.co`. Desde
+04/09/2026 o código do Worker não cita endereço nenhum: tudo o que é desta ou
+daquela instalação está em **`app/workers/em/wrangler.toml`**, e são três
+linhas:
 
-| Arquivo | Linha | Trocar por |
-|---|---|---|
-| `app/workers/em/wrangler.toml` | `pattern = "em.…"` | o subdomínio dele (a zona tem de estar na conta Cloudflare que publica) |
-| `app/workers/em/index.js` | `const ORIGEM = "https://….supabase.co/functions/v1"` | o projeto Supabase dele |
-| `app/workers/em/index.js` | `Response.redirect("https://…/", 302)` | o painel dele |
+| Linha do `wrangler.toml` | O que é |
+|---|---|
+| `pattern = "em.…"` | o subdomínio dele; a zona precisa estar na conta Cloudflare que publica |
+| `ORIGEM_FUNCOES` | as Edge Functions do projeto Supabase dele |
+| `URL_PAINEL` | para onde o lead vai quando o link chega quebrado |
 
 Depois, `cd app/workers/em && npx wrangler deploy` na conta dele, e
 `base_url_tracking` = `https://<o subdomínio>`.
+
+Sem `ORIGEM_FUNCOES` o Worker responde 503 em vez de virar um proxy para lugar
+nenhum; sem `URL_PAINEL`, o link quebrado mostra "Este link expirou" em vez de
+mandar o lead para a casa de outra operação.
+
+A conferência, depois de publicar (o `enviar-ses` no fim não é capricho: prova
+que o Worker **não** é um proxy aberto para as funções):
+
+```bash
+b=https://em.SEUDOMINIO.com.br
+curl -sI "$b/nada"        | head -1   # 404
+curl -sI "$b/rastreio?t=c" | head -1  # 302 para o painel dele
+curl -sI "$b/rastreio?t=o" | head -1  # 200 image/gif
+curl -sI "$b/enviar-ses"   | head -1  # 404
+```
 
 ### 10. Integrações
 

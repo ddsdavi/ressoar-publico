@@ -11,13 +11,27 @@
 //
 // Só dois caminhos passam; o resto é 404. Isto NÃO é um proxy aberto para
 // as functions — abrir tudo daria ao mundo um túnel com o nosso domínio.
-
-const ORIGEM = "https://hkkuhquzpapnitzwpkig.supabase.co/functions/v1";
+//
+// Os dois endereços desta instalação vêm do wrangler.toml (bloco [vars]),
+// não do código: até 04/09/2026 estavam escritos aqui, e uma cópia da
+// plataforma publicava um Worker que servia links apontando para o projeto
+// Supabase de outra casa. Ver docs/11-DUPLICAR-E-VENDER.md, passo 9.
 
 export default {
-  async fetch(req) {
+  async fetch(req, env) {
+    const ORIGEM = (env && env.ORIGEM_FUNCOES ? env.ORIGEM_FUNCOES : "").replace(/\/$/, "");
+    const CASA = (env && env.URL_PAINEL) || "";
     const url = new URL(req.url);
     const caminho = url.pathname;
+
+    // Sem o endereço das funções não há o que servir. Falha curta e
+    // explícita: melhor um erro honesto do que um proxy para lugar nenhum.
+    if (!ORIGEM) {
+      return new Response("Configuração incompleta: falta ORIGEM_FUNCOES.", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
 
     if (!/^\/(descadastro|rastreio)$/.test(caminho)) {
       return new Response("Nada por aqui.", {
@@ -40,7 +54,13 @@ export default {
     // (percent-encoding quebrado por antivírus/reescritor corporativo):
     // o lead cai na casa da marca, nunca numa tela de erro de servidor
     if (caminho === "/rastreio" && resp.status >= 500) {
-      return Response.redirect("https://ressoar.drapatriciadomingos.com.br/", 302);
+      return CASA
+        ? Response.redirect(CASA, 302)
+        : new Response(
+            "<!doctype html><meta charset=\"utf-8\"><title>Link expirado</title>" +
+              "<p style=\"font-family:sans-serif;margin:40px\">Este link expirou.</p>",
+            { status: 410, headers: { "Content-Type": "text/html; charset=utf-8" } },
+          );
     }
 
     const headers = new Headers(resp.headers);
