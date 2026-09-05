@@ -4,11 +4,96 @@ Documento de passagem. Serve para quem pegar este projeto do zero — outra
 sessão, outra conta, outra pessoa — saber em que pé está sem ter que
 reconstituir a conversa.
 
-Última atualização: 04/09/2026.
+Última atualização: 04/09/2026 (noite).
 
 ---
 
-## O envio está pausado desde 31/08, e o remédio continua parado (04/09/2026)
+## A fila saiu, e a porta ficou fechada para o que a entupia (04/09/2026, noite)
+
+O Davi mandou fazer tudo. Feito, nesta ordem, e com a operação rodando.
+
+### 1. A base foi limpa, e o roteiro que a limparia estava quebrado
+
+`higiene_dominios_v1.sql` estava guardado desde 30/08 esperando decisão — e
+**nunca tinha sido executado**. Ao rodar, quebrou três vezes seguidas, cada uma
+num defeito diferente: uma coluna que não existe (`criado_em`, quando a tabela
+tem `created_at`), um `||` sem parênteses montando o padrão (no Postgres `~` e
+`||` têm a mesma precedência, então a comparação virava texto e o `and`
+reclamava), e um `select` com um valor a mais que o `insert`. Depois disso,
+esbarrou numa quarta trava real: a supressão só aceitava cinco motivos, e
+`dominio_invalido` não era um deles.
+
+Roteiro guardado sem rodar é roteiro não testado. Os três defeitos e a correção
+estão escritos no cabeçalho do próprio arquivo.
+
+| | |
+|---|---|
+| Motivo novo na supressão | `supressao_dominio_invalido_v1.sql`, com o rótulo correspondente na tela de Envios |
+| Endereços barrados | **84**, todos erro de digitação evidente: `gmail.con`, `gmail.comm`, `gmail.com.com`, `gnail.com`, `hotiimail.com`, `me.con` |
+| Falsos positivos | nenhum: `gmail.com.br` e domínios reais ficam de fora, de propósito |
+
+### 2. O envio foi religado, e a fila inteira saiu
+
+**743 confirmações de inscrição entregues**, das 745 represadas — as outras duas
+eram endereços impossíveis, pulados. A fila zerou em sete minutos, a cem por
+minuto.
+
+O carimbo importa: `envio_religado_em` só é gravado por gatilho quando **gente**
+destrava pelo painel (`auth.uid()` não nulo). Religando pela API, o carimbo tem
+de ir junto, na mesma transação — sem ele, o freio julgaria de novo os sete dias
+inteiros (3,95%) e pausaria tudo no minuto :07 seguinte.
+
+### 3. A causa mudou de dono no meio do caminho
+
+Com a fila saindo, a devolução dos envios **novos** ficou em 2,27%, ainda acima
+do limite. Só que agora a culpa não era mais da base velha do ActiveCampaign:
+eram endereços digitados errado **naquele momento**, no formulário de inscrição
+da Black, chegando a cada hora.
+
+Limpar a base de tempos em tempos é enxugar gelo. Entrou uma trava estrutural,
+`dominio_impossivel_v1.sql`:
+
+- `public.dominio_impossivel(email)` passa a ser a **fonte única** do padrão. A
+  higiene deixou de ter o seu próprio, e ganhou de brinde o caso que faltava
+  (`gmail.com9`), descoberto na mesma hora;
+- um gatilho em `tabela_1_leads` põe na supressão, na entrada, quem chega com
+  domínio impossível;
+- o cadastro **não** é recusado. A pessoa entra, o WhatsApp e a venda dela
+  funcionam; só não se tenta entregar num endereço que não existe. Recusar
+  perderia a pessoa inteira por causa de uma letra.
+
+**Fecho:** 84 endereços impossíveis na base, 84 barrados, zero soltos. Taxa de
+devolução desde o religamento: **1,62%**, abaixo do limite. O freio não pausou.
+
+### 4. A esteira do lead scoring virou configuração
+
+Era a maior adaptação por cópia, e a única que ainda exigia programação.
+`recalcular_pontuacao_venda` decidia a próxima oferta comparando o produto com
+três textos escritos dentro dela, e olhando uma lista pelo número 6. Agora são
+três chaves em `app_config` (`esteira_produto_principal`, `esteira_produtos_topo`,
+`esteira_lista_aquecimento`), com os valores desta operação como padrão.
+
+**Prova de que nada mudou aqui:** no mesmo instante, o texto fixo antigo e a
+configuração nova classificam **exatamente** os mesmos leads — 566 com o produto
+principal, 187 no topo, 4.176 na lista de aquecimento, zero divergências. A
+distribuição por degrau mudou só onde o tempo mexe (compras envelhecendo, 103
+leads novos entrando durante o trabalho).
+
+A guarda que não pode sair: campo vazio **não** vira `ilike '%%'`. Sem ela, uma
+configuração em branco casaria com os 11.221 registros de compra e jogaria a
+base inteira no degrau errado, sem erro nenhum na tela.
+
+### 5. Uma armadilha nova, a de número 45
+
+`supressao.email` é `citext` e `tabela_1_leads.email` é `text`. Comparar as duas
+colunas com `=` cru volta a diferenciar maiúsculas, e quatro endereços já
+barrados apareceram como "soltos" — enquanto o `insert` para barrá-los não
+inseria **nem** dava erro, porque o `on conflict` usa o índice citext. Está em
+[06](06-PROBLEMAS-CONHECIDOS.md), com a regra que fica.
+
+---
+
+## O envio estava pausado desde 31/08 (04/09/2026, tarde)
 
 Achado ao rodar o conferidor novo (abaixo) — não era o assunto do dia, mas é o
 estado real da operação, e precisa de decisão sua.
@@ -38,8 +123,8 @@ volta a pausar (já pausou em 29, 30 e 31/08). Religar sem limpar é repetir o
 ciclo — e cada rodada dessas machuca a reputação do domínio, que é o ativo que
 demora meses para recuperar.
 
-**Não mexi em nada:** não apliquei a higiene e não religuei o envio. As duas
-coisas são decisão sua, e a segunda manda 663 e-mails.
+**Resolvido na mesma noite**, quando o Davi mandou fazer tudo: ver a seção
+acima. Fica o retrato de como o problema se apresentou.
 
 ---
 

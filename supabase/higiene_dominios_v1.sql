@@ -1,5 +1,22 @@
 -- =====================================================================
--- HIGIENE DE DOMÍNIOS — **NÃO APLICADO**. Espera decisão do Davi.
+-- HIGIENE DE DOMÍNIOS — aplicado em 04/09/2026, a pedido do Davi.
+--
+-- Roda quando quiser: varre a base e joga na supressão o que a função
+-- `public.dominio_impossivel` reconhece. Depois de 04/09/2026 é rede de
+-- segurança, não a defesa principal — a defesa é o gatilho da porta, em
+-- `dominio_impossivel_v1.sql`, que barra na entrada.
+--
+-- Ao aplicar, apareceram DOIS defeitos que nunca tinham sido exercidos:
+--   1. o insert citava uma coluna `criado_em` que não existe (a tabela tem
+--      `created_at`, com default `now()`) — morria no 42703;
+--   1b. e o select ainda trazia um terceiro valor para a coluna que
+--      acabara de sair (42601);
+--   2. o padrão do regex era montado com `||` SEM parênteses. No Postgres
+--      moderno `~` e `||` têm a mesma precedência e associam à esquerda,
+--      então `campo ~ 'a' || 'b'` vira `(campo ~ 'a') || 'b'`: booleano
+--      concatenado com texto, e o `and` recebia texto (42804).
+-- Escrito em 30/08, nunca rodou até aqui — a prova de que roteiro guardado
+-- sem rodar é roteiro não testado. As duas correções estão abaixo.
 --
 -- Por que existe: em 30/08/2026 a taxa de devolução dos últimos 7 dias
 -- ficou em 13,45% e travou o envio. Os endereços que voltaram eram erro
@@ -24,13 +41,16 @@
 
 begin;
 
-insert into public.supressao (email, motivo, criado_em)
-select distinct lower(btrim(l.email)), 'dominio_invalido', now()
+-- O padrão NÃO mora mais aqui: mora em `public.dominio_impossivel`, que o
+-- gatilho da porta (dominio_impossivel_v1.sql) também usa. Padrão escrito
+-- em dois lugares vira duas verdades no primeiro conserto — e o conserto
+-- veio no mesmo dia, quando apareceu `gmail.com9`.
+--
+-- `created_at` tem default now(); a coluna não é nomeada de propósito.
+insert into public.supressao (email, motivo)
+select distinct lower(btrim(l.email)), 'dominio_invalido'
   from public.tabela_1_leads l
- where coalesce(l.email, '') <> ''
-   and split_part(lower(btrim(l.email)), '@', 2) ~
-       '(^gmail\.(co|con|comc|comd|comi|coml|comm|comn|comr|coms|com\.com|comgmail)$'
-    || '|hotmial|hotiimail|gnail|gmial|yahho|outllook|^gm\.com$|\.con$|\.cim$)'
+ where public.dominio_impossivel(l.email)
    and not exists (select 1 from public.supressao s
                     where lower(s.email) = lower(btrim(l.email)))
 on conflict do nothing;

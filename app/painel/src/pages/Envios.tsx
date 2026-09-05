@@ -34,6 +34,8 @@ const MOTIVO: Record<string, { rotulo: string; cor: string; explica: string }> =
     explica: "Já estava bloqueado lá e veio assim na migração. Você começou protegido." },
   manual: { rotulo: "Bloqueio manual", cor: "et-roxa",
     explica: "Alguém do time bloqueou à mão por aqui." },
+  dominio_invalido: { rotulo: "Domínio não existe", cor: "et-cinza",
+    explica: "O endereço tem erro de digitação no domínio (gmail.con, gmail.comm). Nunca chegaria em ninguém, e cada tentativa conta como devolução contra a reputação do seu domínio." },
 };
 const motivoDe = (m: string) =>
   MOTIVO[m] ?? { rotulo: m, cor: "et-cinza", explica: "Origem não identificada." };

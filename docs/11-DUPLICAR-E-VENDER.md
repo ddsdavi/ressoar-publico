@@ -145,6 +145,26 @@ Auth no Supabase, com o endereço final do painel.
   Worker, `https://<ref-do-projeto>.supabase.co/functions/v1`. Sem esse valor
   o motor **não envia** — é a guarda do rodapé legal.
 - Provedor de envio e chave, conforme [05](05-LIGAR-ENVIO-REAL.md).
+- **A esteira do lead scoring**, três chaves em `app_config` que dizem quais
+  produtos desta operação valem o quê. Sem elas, todo mundo cai em "aquecer
+  primeiro" e a coluna "próxima oferta" não serve para nada:
+
+| Chave | O que é |
+|---|---|
+| `esteira_produto_principal` | o produto que define quem "já entrou" na casa; casa por pedaço do nome |
+| `esteira_produtos_topo` | os produtos de topo, separados por vírgula |
+| `esteira_lista_aquecimento` | o número da lista de quem é aquecido sem ter comprado |
+
+  ```sql
+  update public.app_config set valor = 'Nome do Curso Principal' where chave = 'esteira_produto_principal';
+  update public.app_config set valor = 'Mentoria,Acompanhamento'  where chave = 'esteira_produtos_topo';
+  update public.app_config set valor = '3'                        where chave = 'esteira_lista_aquecimento';
+  select public.recalcular_pontuacao_venda();
+  ```
+
+  Deixar em branco não quebra nada: o degrau que depende daquele campo
+  simplesmente não classifica ninguém. Campo vazio **nunca** vira "casa com
+  qualquer produto".
 
 ### 7. Secrets que o instalador não grava
 
@@ -231,7 +251,7 @@ para testar).
 
 | Onde | O quê | O que fazer |
 |---|---|---|
-| `supabase/pontuacao_venda_v1.sql` | a **esteira do lead scoring de venda**: os degraus (`formacao_janela_quente`, `desafio_lives`…) e os nomes de produto (`Formação em Biorressonância`, `Black Ressonante`) são desta operação | A cópia roda, mas a "próxima oferta" só faz sentido depois de reescrever a régua para os produtos do comprador. **É a maior adaptação por operação**, e é trabalho de programação. |
+| `app/painel/src/lib/venda.ts` | os **títulos** dos degraus do lead scoring, que o operador lê ("Formação — janela quente") | Trocar os textos pelos da operação do comprador. Os **códigos** dos degraus ficam: são chaves internas, gravadas em segmentos e no resumo diário. A régua em si deixou de citar produto em 04/09/2026 e virou configuração (passo 6). |
 | `[RESSOAR]` nos relógios do cron, `usuarios_ressoar`, `.ressoar-form` | o nome do **produto**, não do cliente | Fica. |
 | `app/painel/src/pages/Landing.tsx` | o WhatsApp e o Instagram de quem construiu, como crédito | Decisão de quem vende: manter o crédito ou trocar. |
 | `docs/09-ONDE-PAREI.md`, `docs/superpowers/` | a história desta operação | Pode apagar na cópia. |

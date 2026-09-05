@@ -131,3 +131,6 @@ supabase/freio_v3_1_data_iso.sql
 supabase/relatorio_automacoes_v1.sql
 supabase/qualidade_email_v1.sql
 supabase/envio_avulso_v1.sql
+supabase/supressao_dominio_invalido_v1.sql
+supabase/dominio_impossivel_v1.sql
+supabase/esteira_configuravel_v1.sql

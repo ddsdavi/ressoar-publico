@@ -907,3 +907,27 @@ da mesma compra; cada um segue como a operação distinta que é.
 
 **Regra que fica:** onde há criação concorrente, `insert` que falha por duplicidade não é
 erro — é sinal de que outro processo chegou primeiro. Buscar de novo, não desistir.
+
+---
+
+## 45. `supressao.email` é citext e `tabela_1_leads.email` é text
+
+**Sintoma:** em 04/09/2026, uma conferência acusou quatro endereços de domínio impossível
+"fora da supressão". O `insert` para colocá-los lá não inseriu nada — e também não deu
+erro. As duas coisas ao mesmo tempo não fazem sentido.
+
+**Causa:** os tipos são diferentes. `supressao.email` é **citext** (compara sem diferenciar
+maiúsculas); `tabela_1_leads.email` é **text**. Numa comparação entre as duas colunas, o
+Postgres resolve para `text` e volta a diferenciar caixa — então `Fulano@Gmail.con` na
+supressão não casa com `fulano@gmail.con` no lead, e o `not exists` diz que está solto. Já
+o `on conflict (email)` usa o índice da chave primária, que **é** citext: ali o conflito
+existe, e o insert é descartado em silêncio.
+
+**Correção:** ao cruzar as duas tabelas, force os dois lados —
+`lower(s.email::text) = lower(l.email::text)`. Com isso os quatro apareceram pelo que eram:
+já barrados.
+
+**Regra que fica:** e-mail neste banco vive em dois tipos. Comparação entre tabelas
+diferentes nunca deve confiar no `=` cru. E `insert` que não insere **nem** dá erro é quase
+sempre `on conflict` batendo num índice cuja regra de igualdade não é a mesma da sua
+consulta.
